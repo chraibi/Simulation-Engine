@@ -10,7 +10,7 @@ class Car:
         # This has 2 arguments we need to specify when we create a Car instance
         self.colour = colour
         self.position = position
-        
+
         # Update global counter each time a Car is initialised
         global counter
         self.car_id = counter
@@ -22,10 +22,13 @@ class Car:
         print(f"{self.colour} car now at position {self.position}")
 
     # Define one of the 'dunder' methods (with underscores)
-    
     def __str__(self) -> str:
         # This tells us what string to return to a print function when instance printed
         return f"Car with ID {self.car_id} is {self.colour}, and at position {self.position}."
+    
+    # Define the distance between cars
+    def distance(self, other) -> str:
+        return f"The distance between Car {self.car_id} and Car {other.car_id} is {round(abs(self.position - other.position), 2)}"
 
 # Package script into 'main'
 def main_function():
@@ -43,6 +46,8 @@ def main_function():
     # Print the bmw and volvo __str__:
     print(bmw)
     print(volvo)
+
+    print(bmw.distance(volvo))
 
 # Call main_function 
 if __name__ == '__main__':
