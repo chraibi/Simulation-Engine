@@ -94,12 +94,13 @@ Merging
 ``` git push origin develop/new-feature ```
 
 - Merge branch into main: \
-``` git checkout develop/new-feature ```
+``` git checkout main ``` \
 ``` git merge develop/new-feature ```
 
 - Show changes in unstaged files: \
 ``` git diff ```
+``` git diff --staged``` (Show staged changes)
+Note this takes you into an environment, press enter to keep scrolling
+Press 'q' key to exit this environment back to terminal
 
-- Show staged changes: \
-``` git diff --staged```
 
