@@ -1,12 +1,20 @@
 # learning_classes.py
 
+# Define global counter variable
+counter = 0
+
 # Define a Car class, (capitalised)
 class Car:
-    # We define a 'self' method function of the class, containing attributes
+    # We define an intialisation method function of the class, containing starting attributes
     def __init__(self, colour: str, position: float) -> None:
         # This has 2 arguments we need to specify when we create a Car instance
         self.colour = colour
         self.position = position
+        
+        # Update global counter each time a Car is initialised
+        global counter
+        self.car_id = counter
+        counter += 1
 
     # We define a 'drive' method
     def drive(self, distance) -> None:
@@ -17,21 +25,24 @@ class Car:
     
     def __str__(self) -> str:
         # This tells us what string to return to a print function when instance printed
-        return f"{self.colour} car at position {self.position}."
+        return f"Car with ID {self.car_id} is {self.colour}, and at position {self.position}."
 
 # Package script into 'main'
 def main_function():
-    # Create an instance of the Car class
+    
+    # Create a couple of instances of the Car class
     bmw = Car("white", 5)
+    volvo = Car("red",2)
 
     # Print the colour of the bmw Car
     print(f"The BMW has a {bmw.colour} colour")
 
     # Drive the bmw a few metres down the road
-    bmw.drive(5.4)
+    volvo.drive(5.4)
 
-    # Print the bmw __str__:
+    # Print the bmw and volvo __str__:
     print(bmw)
+    print(volvo)
 
 # Call main_function 
 if __name__ == '__main__':
