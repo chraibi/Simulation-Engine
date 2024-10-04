@@ -13,6 +13,12 @@ class Car:
         self.position += distance
         print(f"{self.colour} car now at position {self.position}")
 
+    # Define one of the 'dunder' methods (with underscores)
+    
+    def __str__(self) -> str:
+        # This tells us what string to return to a print function when instance printed
+        return f"{self.colour} car at position {self.position}."
+
 # Package script into 'main'
 def main_function():
     # Create an instance of the Car class
@@ -23,6 +29,9 @@ def main_function():
 
     # Drive the bmw a few metres down the road
     bmw.drive(5.4)
+
+    # Print the bmw __str__:
+    print(bmw)
 
 # Call main_function 
 if __name__ == '__main__':
