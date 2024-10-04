@@ -7,7 +7,7 @@ Aims:
 
 -This should take initial positions, a custom 2D environment, and update each pedestrians position and velocity at each timestep
 
--This should be done following Git and Python best practices, using class instances for each pedestrian
+-This should be done following Git and Python best practices, using class instances for each pedestrian. Use git terminal commands.
 
 -This should store information in an updated CSV file for each run
 
