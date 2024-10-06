@@ -25,12 +25,19 @@ class Person:
     random_force = 1
 
     # Class to describe each person in simulation
-    def __init__(self, position: np.ndarray, velocity: np.ndarray) -> None:
-        # Check for correct formats
+    def __init__(self, 
+                position: np.ndarray = None,
+                velocity: np.ndarray = None) -> None:
+        
+        #TODO Check for correct formats
 
-        # Assign defaults
-        self.position = position
-        self.velocity = velocity
+        # Assign random position and stationary velocity if not given
+        if position is None:
+            self.position = np.random.rand(2)*100
+        if velocity is None:
+            self.velocity = np.zeros(2)
+
+        # Start with zero acceleration
         self.force_term = np.zeros(2)
 
         # Add to set of all people
@@ -69,18 +76,19 @@ class Person:
                 continue
 
         # Force from walls - ideally would find shortest dist etc
-        person_x, person_y = self.position[0], self.position[1]
-        if person_x < Person.walls_dist_thresh:
+        pos_x, pos_y = self.position[0], self.position[1]
+        if pos_x < Person.walls_dist_thresh:
             force_term += Person.walls_force * np.array([1,0])
-        elif person_x > (Person.walls_x_lim - Person.walls_dist_thresh):
+        elif pos_x > (Person.walls_x_lim - Person.walls_dist_thresh):
             force_term += Person.walls_force * np.array([-1,0])
-        if person_y < Person.walls_dist_thresh:
+        if pos_y < Person.walls_dist_thresh:
             force_term += Person.walls_force * np.array([0,1])
-        elif person_y > (Person.walls_y_lim - Person.walls_dist_thresh):
+        elif pos_y > (Person.walls_y_lim - Person.walls_dist_thresh):
             force_term += Person.walls_force * np.array([0,-1])
 
-        # Random force
-        force_term += np.random.rand(2)*Person.random_force
+        # Random force - stochastic noise
+        # Generate between [0,1], map to [0,2] then shift to [-1,1]
+        force_term += ((np.random.rand(2)*2)-1)*Person.random_force
 
         self.force_term = force_term
 

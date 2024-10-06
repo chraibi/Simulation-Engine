@@ -1,4 +1,3 @@
-import os
 import csv
 import datetime
 import numpy as np
@@ -11,16 +10,17 @@ from pedestrian import Person
 # --------------------------------------------------------------------------------------------------------
 
 # Instantiate some people
-num_people = 3
-person1 = Person(np.random.rand(2)*100, np.zeros(2))
-person2 = Person(np.random.rand(2)*100, np.zeros(2))
-person3 = Person(np.random.rand(2)*100, np.zeros(2))
+num_people = 100
+people_instances = []
+for i in range(num_people):
+    person_instance = Person()
+    people_instances.append(person_instance)
 
 # --------------------------------------------------------------------------------------------------------
 
 # Initialise CSV with current datetime in file name, for uniqueness
 now = datetime.datetime.now()
-csv_path = "Simulation_CSVs/simulation_"+str(now.date())+"_"+str(now.time())+".csv"
+csv_path = "Simulation_CSVs/simulation_"+str(num_people)+str(now.date())+"_"+str(now.time())+".csv"
 
 # Create header columns, 4 for each person id
 csv_header = ["time_step"]
@@ -81,6 +81,8 @@ scat = ax.scatter([], [])
 def update(frame):
     # Clear axis between frames, set axes limits
     ax.clear()
+    ax.set_xlim(0, Person.walls_x_lim)  # Set x-axis limits
+    ax.set_ylim(0, Person.walls_y_lim)  # Set y-axis limits
 
     # Open row in CSV
     with open(csv_path, mode='r', newline='') as file:
@@ -106,5 +108,12 @@ def update(frame):
     ax.set_title(f"Step {current_step[0]}")
 
 ani = FuncAnimation(fig, update, frames=time_steps, interval=50)
+
+save_as_mp4 = True
+if save_as_mp4:
+    mp4_path = "Simulation_mp4s/crowd_"+str(num_people)+str(now.date())+"_"+str(now.time())+".MP4"
+    ani.save(mp4_path, writer='ffmpeg', fps=30)
+    print(f"Saved simulation as mp4 at {mp4_path}.")
+
 plt.show()
 
