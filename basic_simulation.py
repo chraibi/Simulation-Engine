@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Polygon
+from matplotlib.transforms import Affine2D
 
 from pedestrian import Person
 
@@ -13,7 +15,7 @@ warnings.filterwarnings("ignore")
 # --------------------------------------------------------------------------------------------------------
 
 # Instantiate some people
-num_people = 100
+num_people = 10
 people_instances = []
 for i in range(num_people):
     person_instance = Person()
@@ -80,15 +82,26 @@ write_row(new_csv_row)
 print("-")
 print("\n")
 
+# Initialise a scatter plot (need all of this)
 fig, ax = plt.subplots(figsize=[7,7])
 fig.canvas.set_window_title(f'Crowd Simulation animation, {num_people} people')
-
-
-# Initialise a scatter plot to help animation
 ax.set_xlim(0, Person.walls_x_lim)  # Set x-axis limits
 ax.set_ylim(0, Person.walls_y_lim)  # Set y-axis limits
 scat = ax.scatter([], [])
 
+# Triangle creator for directed markers
+def create_irregular_triangle(angle_rad):
+    # Define vertices for an irregular triangle (relative to origin)
+    triangle = np.array([[-0.5, -1], [0.5, -1], [0.0, 1]])
+
+    # Create a rotation matrix
+    rotation_matrix = np.array([[np.cos(angle_rad), -np.sin(angle_rad)],
+                                [np.sin(angle_rad),  np.cos(angle_rad)]])
+    
+    # Apply the rotation to the triangle vertices
+    rotated_triangle = triangle @ rotation_matrix.T
+    
+    return rotated_triangle
 
 def update(frame):
     # Progress bar
@@ -99,6 +112,14 @@ def update(frame):
     ax.set_xlim(0, Person.walls_x_lim)  # Set x-axis limits
     ax.set_ylim(0, Person.walls_y_lim)  # Set y-axis limits
     ax.set_aspect('equal', adjustable='box')
+
+    # Plot attraction and radius
+    attract_x, attract_y = Person.attract_point[0], Person.attract_point[1]
+    attract_r = np.sqrt(Person.attract_radius)
+    ax.scatter([attract_x],[attract_y], c="k",marker='x')
+    circle_thetas = np.linspace(0,2*np.pi)
+    ax.plot((attract_r*np.cos(circle_thetas)+attract_x), 
+            (attract_r*np.sin(circle_thetas)+attract_y), c='k', linestyle=':', alpha=0.3)
 
     # Open row in CSV
     with open(csv_path, mode='r', newline='') as file:
@@ -112,15 +133,28 @@ def update(frame):
                 current_step_strings = row
                 current_step = [float(x) for x in current_step_strings] # Convert string -> float!
                 break
-
+                
     # Columns are:
     # time_step, pos_x_0, pos_y_0, vel_x_0, vel_y_0, pos_x_1, pos_x_2, ...
     # Extract x,y positions to scatter
-    x_vals = [current_step[i] for i in range(4*num_people+1) if ((i-1)%4 == 0)]
-    y_vals = [current_step[i] for i in range(4*num_people+1) if ((i-2)%4 == 0)]
+    pos_x_vals = [current_step[i] for i in range(4*num_people+1) if ((i-1)%4 == 0)]
+    pos_y_vals = [current_step[i] for i in range(4*num_people+1) if ((i-2)%4 == 0)]
+    # Extract velocity to get direction
+    vel_x_vals = [current_step[i] for i in range(4*num_people+1) if ((i-3)%4 == 0)]
+    vel_y_vals = [current_step[i] for i in range(4*num_people+1) if ((i-4)%4 == 0 and i!=0)]
+    thetas = np.arctan2(vel_y_vals, vel_x_vals) - np.pi/2
 
-    # Plot scattered points
-    ax.scatter(x_vals, y_vals)
+    # Plot directed points
+    for i in range(len(pos_x_vals)):
+        # Create a Polygon patch to represent the irregular triangle
+        triangle_shape = create_irregular_triangle(thetas[i])
+        polygon = Polygon(triangle_shape, closed=True, facecolor='blue', edgecolor='black')
+        
+        # Create transformation of the polygon to the point
+        t = Affine2D().translate(pos_x_vals[i], pos_y_vals[i]) + ax.transData
+        polygon.set_transform(t)  # Apply the translation
+        ax.add_patch(polygon)
+
     ax.set_title(f"Time step {round(int(current_step[0]))}")
 
 interval_between_frames = 100 # milliseconds
