@@ -1,4 +1,3 @@
-import os
 import csv
 import datetime
 import numpy as np
@@ -55,4 +54,13 @@ for t in range(time_steps):
         person.update_velocity()
         person.position += person.velocity # Take a step
 
+# Final state
+new_csv_row = [time_steps]
+for person in Person.all:
+    pos_x, pos_y = person.position[0], person.position[1]
+    vel_x, vel_y = person.velocity[0], person.velocity[1]
+    new_csv_row += [pos_x, pos_y, vel_x, vel_y]
+write_row(new_csv_row)
+
 # --------------------------------------------------------------------------------------------------------
+
