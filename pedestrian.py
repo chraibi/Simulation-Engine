@@ -37,7 +37,7 @@ class Person:
         global counter
         self.person_id = counter
         counter += 1
-        all += [self]
+        Person.all += [self]
 
     # Print statement for person
     def __str__(self) -> str:
@@ -60,7 +60,7 @@ class Person:
         force_term = np.zeros(2)
 
         # Personal force
-        for person in all:
+        for person in Person.all:
             if person == self:
                 continue
             elif self.dist(person) < Person.person_dist_thresh:
