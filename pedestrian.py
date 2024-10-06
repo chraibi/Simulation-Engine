@@ -12,7 +12,7 @@ class Person:
     # Person
     person_dist_thresh = 100**2
     person_force = 5
-    person_speed = 5
+    max_speed = 5
     person_inertia = 1
 
     # Walls 
@@ -55,7 +55,7 @@ class Person:
         return (self.position-other.position)/np.sqrt(self.dist(other))
     
     # Calculate force term for person and apply
-    def apply_force_term(self) -> None:
+    def calculate_force_term(self) -> np.ndarray:
         force_term = np.zeros(2)
 
         # Personal force
@@ -81,11 +81,21 @@ class Person:
         # Random force
         force_term += np.random.rand(2)*Person.random_force
 
-        # Update velocity
+        return force_term
+
+    def update_velocity(self, force_term: np.ndarray):
+        # Update velocity via force term
         self.velocity += Person.person_inertia * force_term
         speed = np.sqrt(np.sum(self.velocity)**2)
-        if speed > Person.person_speed:
-            self.velocity *= Person.person_speed/speed
+        # Normalise speed to max in whichever direction it points
+        if speed > Person.max_speed:
+            self.velocity *= Person.max_speed/speed
+
+    @staticmethod
+    def all_take_step():
+        # Makes each person take step in direction of velocity
+        for person in Person.all:
+            person.position += person.velocity
 
 
 
