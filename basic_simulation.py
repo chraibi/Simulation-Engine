@@ -14,13 +14,13 @@ person3 = Person(np.random.rand(2)*100, np.zeros(2))
 
 # Initialise CSV with current datetime in file name, for uniqueness
 now = datetime.datetime.now()
-csv_path = "simulation_"+now.date()+"_"+now.time()+".csv"
+csv_path = "simulation_"+str(now.date())+"_"+str(now.time())+".csv"
 
 # Create header columns, 4 for each person id
 csv_header = ["time_step"]
 for person in Person.all:
     id = str(person.person_id)
-    csv_header += ["pos_x_"+id,"pos_y_"+id,"vel_x"+id,"vel_y"+id]
+    csv_header += ["pos_x_"+id,"pos_y_"+id,"vel_x_"+id,"vel_y_"+id]
 
 # Write to the CSV path and add header
 with open(csv_path, mode='w', newline='') as file:

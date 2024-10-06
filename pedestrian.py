@@ -49,7 +49,7 @@ class Person:
 
     # Calculate squared euclidean distance between people
     def dist(self,other) -> float:
-        return (self.position-other.position)**2
+        return np.sum((self.position-other.position)**2)
     
     # Calculate distance direction between people
     def dirn(self,other) -> float:
