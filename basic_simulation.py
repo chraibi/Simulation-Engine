@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore")
 # --------------------------------------------------------------------------------------------------------
 
 # Instantiate some people
-num_people = 10
+num_people = 100
 people_instances = []
 for i in range(num_people):
     person_instance = Person()
