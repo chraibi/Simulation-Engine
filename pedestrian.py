@@ -10,14 +10,14 @@ class Person:
     all = []
     
     # Person
-    person_dist_thresh = 100**2
+    person_dist_thresh = 30**2
     person_force = 5
-    max_speed = 5
+    max_speed = 3
     person_inertia = 1
 
     # Walls 
-    walls_dist_thresh = 1*2
-    walls_force = 10
+    walls_dist_thresh = 1**2
+    walls_force = 3
     walls_x_lim = 100
     walls_y_lim = 100
 

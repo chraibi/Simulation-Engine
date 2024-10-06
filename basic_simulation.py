@@ -10,7 +10,7 @@ from pedestrian import Person
 # --------------------------------------------------------------------------------------------------------
 
 # Instantiate some people
-num_people = 100
+num_people = 50
 people_instances = []
 for i in range(num_people):
     person_instance = Person()
@@ -20,7 +20,8 @@ for i in range(num_people):
 
 # Initialise CSV with current datetime in file name, for uniqueness
 now = datetime.datetime.now()
-csv_path = "Simulation_CSVs/simulation_"+str(num_people)+str(now.date())+"_"+str(now.time())+".csv"
+csv_path = "Simulation_CSVs/simulation_"+str(num_people)+str(now.time())+"_"+str(now.date())+".csv"
+csv_path = csv_path.replace(":","-") # makes file more readable
 
 # Create header columns, 4 for each person id
 csv_header = ["time_step"]
@@ -44,6 +45,9 @@ def write_row(row: list):
 # Loop through timesteps
 time_steps = 100
 for t in range(time_steps):
+    # Print calculation progress
+    # end="\r", flush=True
+
     # Before updating, store position and velocity for each person
     new_csv_row = [t]
     for person in Person.all:
@@ -69,20 +73,23 @@ for person in Person.all:
 write_row(new_csv_row)
 
 # --------------------------------------------------------------------------------------------------------
-
 # Animate the CSV
-fig, ax = plt.subplots()
+
+fig, ax = plt.subplots(figsize=[7,7])
+fig.canvas.set_window_title(f'Crowd Simulation animation, {num_people} people')
+
+
+# Initialise a scatter plot to help animation
 ax.set_xlim(0, Person.walls_x_lim)  # Set x-axis limits
 ax.set_ylim(0, Person.walls_y_lim)  # Set y-axis limits
-
-# Initialise a scatter plot
 scat = ax.scatter([], [])
 
 def update(frame):
-    # Clear axis between frames, set axes limits
+    # Clear axis between frames, set axes limits again
     ax.clear()
     ax.set_xlim(0, Person.walls_x_lim)  # Set x-axis limits
     ax.set_ylim(0, Person.walls_y_lim)  # Set y-axis limits
+    ax.set_aspect('equal', adjustable='box')
 
     # Open row in CSV
     with open(csv_path, mode='r', newline='') as file:
@@ -105,14 +112,17 @@ def update(frame):
 
     # Plot scattered points
     ax.scatter(x_vals, y_vals)
-    ax.set_title(f"Step {current_step[0]}")
+    ax.set_title(f"Time step {round(int(current_step[0]))}")
 
-ani = FuncAnimation(fig, update, frames=time_steps, interval=50)
+interval_between_frames = 100 # milliseconds
+ani = FuncAnimation(fig, update, frames=time_steps, interval=100)
 
 save_as_mp4 = True
 if save_as_mp4:
-    mp4_path = "Simulation_mp4s/crowd_"+str(num_people)+str(now.date())+"_"+str(now.time())+".MP4"
-    ani.save(mp4_path, writer='ffmpeg', fps=30)
+    mp4_path = "Simulation_mp4s/crowd_"+str(num_people)+"_"+str(now.time())+"_"+str(now.date())+".MP4"
+    mp4_path = mp4_path.replace(":","-")
+    fps = 1/(interval_between_frames*(10**(-3))) # period -> frequency
+    ani.save(mp4_path, writer='ffmpeg', fps=fps)
     print(f"Saved simulation as mp4 at {mp4_path}.")
 
 plt.show()
