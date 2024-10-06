@@ -1,11 +1,17 @@
+import os
 import csv
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
 from pedestrian import Person
+
+
 # --------------------------------------------------------------------------------------------------------
 
 # Instantiate some people
+num_people = 3
 person1 = Person(np.random.rand(2)*100, np.zeros(2))
 person2 = Person(np.random.rand(2)*100, np.zeros(2))
 person3 = Person(np.random.rand(2)*100, np.zeros(2))
@@ -14,7 +20,7 @@ person3 = Person(np.random.rand(2)*100, np.zeros(2))
 
 # Initialise CSV with current datetime in file name, for uniqueness
 now = datetime.datetime.now()
-csv_path = "simulation_"+str(now.date())+"_"+str(now.time())+".csv"
+csv_path = "Simulation_CSVs/simulation_"+str(now.date())+"_"+str(now.time())+".csv"
 
 # Create header columns, 4 for each person id
 csv_header = ["time_step"]
@@ -63,4 +69,42 @@ for person in Person.all:
 write_row(new_csv_row)
 
 # --------------------------------------------------------------------------------------------------------
+
+# Animate the CSV
+fig, ax = plt.subplots()
+ax.set_xlim(0, Person.walls_x_lim)  # Set x-axis limits
+ax.set_ylim(0, Person.walls_y_lim)  # Set y-axis limits
+
+# Initialise a scatter plot
+scat = ax.scatter([], [])
+
+def update(frame):
+    # Clear axis between frames, set axes limits
+    ax.clear()
+
+    # Open row in CSV
+    with open(csv_path, mode='r', newline='') as file:
+        reader = csv.reader(file)
+
+        # Loop through the CSV rows until reaching the desired row
+        # This must be done since CSV doesn't have indexed data structure
+        target_row_index = frame+1 
+        for i, row in enumerate(reader):
+            if i == target_row_index:
+                current_step_strings = row
+                current_step = [float(x) for x in current_step_strings] # Convert string -> float!
+                break
+
+    # Columns are:
+    # time_step, pos_x_0, pos_y_0, vel_x_0, vel_y_0, pos_x_1, pos_x_2, ...
+    # Extract x,y positions to scatter
+    x_vals = [current_step[i] for i in range(4*num_people+1) if ((i-1)%4 == 0)]
+    y_vals = [current_step[i] for i in range(4*num_people+1) if ((i-2)%4 == 0)]
+
+    # Plot scattered points
+    ax.scatter(x_vals, y_vals)
+    ax.set_title(f"Step {current_step[0]}")
+
+ani = FuncAnimation(fig, update, frames=time_steps, interval=50)
+plt.show()
 
