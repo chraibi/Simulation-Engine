@@ -6,11 +6,14 @@ from matplotlib.animation import FuncAnimation
 
 from pedestrian import Person
 
+# HIDE WARNINGS
+import warnings
+warnings.filterwarnings("ignore")
 
 # --------------------------------------------------------------------------------------------------------
 
 # Instantiate some people
-num_people = 50
+num_people = 100
 people_instances = []
 for i in range(num_people):
     person_instance = Person()
@@ -46,7 +49,7 @@ def write_row(row: list):
 time_steps = 100
 for t in range(time_steps):
     # Print calculation progress
-    # end="\r", flush=True
+    print(f"----- Computation progress: {t} / {time_steps} -----" ,end="\r", flush=True)
 
     # Before updating, store position and velocity for each person
     new_csv_row = [t]
@@ -74,6 +77,8 @@ write_row(new_csv_row)
 
 # --------------------------------------------------------------------------------------------------------
 # Animate the CSV
+print("-")
+print("\n")
 
 fig, ax = plt.subplots(figsize=[7,7])
 fig.canvas.set_window_title(f'Crowd Simulation animation, {num_people} people')
@@ -84,7 +89,11 @@ ax.set_xlim(0, Person.walls_x_lim)  # Set x-axis limits
 ax.set_ylim(0, Person.walls_y_lim)  # Set y-axis limits
 scat = ax.scatter([], [])
 
+
 def update(frame):
+    # Progress bar
+    print(f"----- Animation progress: {frame} / {time_steps} -----" ,end="\r", flush=True)
+
     # Clear axis between frames, set axes limits again
     ax.clear()
     ax.set_xlim(0, Person.walls_x_lim)  # Set x-axis limits
@@ -123,6 +132,7 @@ if save_as_mp4:
     mp4_path = mp4_path.replace(":","-")
     fps = 1/(interval_between_frames*(10**(-3))) # period -> frequency
     ani.save(mp4_path, writer='ffmpeg', fps=fps)
+    print("\n")
     print(f"Saved simulation as mp4 at {mp4_path}.")
 
 plt.show()
