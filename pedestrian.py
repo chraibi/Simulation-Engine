@@ -12,6 +12,8 @@ class Person:
     # Person
     person_dist_thresh = 100**2
     person_force = 5
+    person_speed = 5
+    person_inertia = 1
 
     # Walls 
     walls_dist_thresh = 1*2
@@ -53,7 +55,7 @@ class Person:
         return (self.position-other.position)/np.sqrt(self.dist(other))
     
     # Calculate force term for person and apply
-    def force_term(self) -> None:
+    def apply_force_term(self) -> None:
         force_term = np.zeros(2)
 
         # Personal force
@@ -79,7 +81,12 @@ class Person:
         # Random force
         force_term += np.random.rand(2)*Person.random_force
 
-        return force_term
+        # Update velocity
+        self.velocity += Person.person_inertia * force_term
+        speed = np.sqrt(np.sum(self.velocity)**2)
+        if speed > Person.person_speed:
+            self.velocity *= Person.person_speed/speed
+
 
 
             
