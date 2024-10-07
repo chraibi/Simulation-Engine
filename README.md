@@ -1,12 +1,14 @@
 # Crowd-Simulation
 Python learning project Oct 2024
 
+![demo-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo.gif)
+
 Files:
 - pedestrian.py : contains Person class with force-based model methods
 - basic_simulation.py : script that simulates the dynamics given the force based model from pedestrian.py
     - Run with terminal command: \
     ```python basic_simulation.py --num_people 10 --save_mp4 True```
-- demo.mp4 : demonstration video simulation
+- demo.mp4, demo.gif : demonstration video simulation
 - learning_classes.py : script to learn classes and OOP
 - VersionControl.md : markdown document with Git commands and explanation
 - .gitignore : file telling Git to ignore output CSV and MP4 folders
