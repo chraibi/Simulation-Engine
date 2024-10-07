@@ -4,6 +4,8 @@ Python learning project Oct 2024
 ![demo-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo.gif)
 
 Files:
+---
+
 - pedestrian.py : contains Person class with force-based model methods
 - basic_simulation.py : script that simulates the dynamics given the force based model from pedestrian.py
     - Run with terminal command: \
