@@ -83,21 +83,41 @@ class Particle:
     @classmethod
     def get_count(cls):
         ''' Return a class type count. eg  num_birds = Bird.get_count(). '''
-        class_name = cls.__name__
-        return Particle.pop_counts_dict.get(class_name, 0)
+        return Particle.pop_counts_dict.get(cls.__name__, 0)
     @classmethod
     def get_max_id(cls):
         ''' Return a class max id. eg max_id_birds = Bird.get_max_id(). '''
-        class_name = cls.__name__
-        return Particle.max_ids_dict.get(class_name, 0)
+        return Particle.max_ids_dict.get(cls.__name__, 0)
     
     @classmethod
     def remove_by_id(cls, id):
         ''' Remove class instance from list of instances by its id. '''
-        class_name = cls.__name__
-        if id in Particle.all[class_name]:
-            del Particle.all[class_name][id]
-            Particle.pop_counts_dict[class_name] -= 1
+        if id in Particle.all[cls.__name__]:
+            del Particle.all[cls.__name__][id]
+            Particle.pop_counts_dict[cls.__name__] -= 1
+        else:
+            pass
+
+    @classmethod
+    def get_instance_by_id(cls, id):
+        ''' Get class instance by its id. If id doesn't exist, throw a KeyError.'''
+        if id in Particle.all[cls.__name__]:
+            return Particle.all[cls.__name__][id]
+        else:
+            raise KeyError(f"Instance with id {id} not found in {cls.__name__}.")
+        
+    @classmethod
+    def iterate_instances(cls):
+        ''' Iterate over all instances of a given class by id '''
+        # This function is a 'generator' object in Python due to the use of 'yield'.
+        # It unpacks each {id: instance} dictionary item within our Particle.all[classname] dictionary
+        # It then 'yields' the instance. Can be used in a for loop as iterator.
+        for id, instance in Particle.all.get(cls.__name__, {}).items():
+            yield instance
+        
+    
+    
+
 
 
 
