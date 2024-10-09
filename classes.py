@@ -17,11 +17,17 @@ class Particle:
 
     # Establish big dictionary of all child instances, referenced by ID number
     # eg {bird: {0:instance0, 1:instance1, ...}, plane: {0: ...}, ... }
+    # This is used to fully encode the system's state at each timestep.
     all = {}
+
+    # Current time, to be updated each timestep
+    current_time = 0
+    num_timesteps = 100
 
     # Basic wall boundaries (Region is [0,walls_x_lim]X[0,walls_y_lim] )
     walls_x_lim = 100
     walls_y_lim = 100
+    torus = False
 
     # Default time step length used for simulation
     delta_t = 0.01
@@ -80,6 +86,7 @@ class Particle:
 
     # -------------------------------------------------------------------------
     # Management utilities
+    # TODO: Make some of these hidden!
 
     @classmethod
     def get_count(cls):
@@ -127,12 +134,14 @@ class Particle:
 
     # -------------------------------------------------------------------------
     # Numerical utilities
+    # TODO: Make some of these hidden!
 
     def dist(self,other) -> float:
         ''' 
         Calculates squared euclidean distance between particles.
         Usage: my_dist = particle1.dist(particle2).
         '''
+        # TODO: optional bool for Torus shaped region
         return np.sum((self.position-other.position)**2)
     
     def dirn(self,other) -> float:
@@ -140,6 +149,7 @@ class Particle:
         Calculates the direction unit vector pointing from particle1 to particle2.
         Usage: my_vec = particle1.dist(particle2).
         '''
+        # TODO: optional bool for Torus shaped region
         return (other.position-self.position)/np.sqrt(self.dist(other))
     
     def normalise_velocity(self, max_speed: float):
@@ -149,17 +159,76 @@ class Particle:
             self.velocity *= max_speed/speed
 
     @staticmethod
+    def centre_of_mass():
+        # TODO: return COM, worked out from Particle.all instance.position and instance.mass
+        pass
+
+    @staticmethod
+    def scene_bounds():
+        # TODO: return furthest points from COM to bounds, get a scaling factor
+        pass
+
+    @staticmethod
     def timestep_update(speed_limit: bool = False):
-        # Build class list by checking pop_counts_dict for nonzero
+        # Build class list by checking class.get_count() method
         # For each class in list, use iterator method to access each id
         # Use current state to work out acceleration for every existing particle
         # for particle in [iterator]:
         #       particle.update_acceleration()
         # For each particle update its (current, last) by Verlet recurrence relation using its acceleration
         # Implement speed limit by moving in direction of new (current-last) but only distance=particle.max_speed*delta_t along
+        # If torus, pass final position through modulo functions
         # Any other main things to consider?
         pass
     
+
+    # -------------------------------------------------------------------------
+    # CSV utilities
+    # Need to be smart to check variable lengths
+    # TODO: Make some of these hidden!
+
+
+    @staticmethod
+    def write_to_csv(filename):
+        # Flatten all info from current state Particle.all using heuristic
+        # Seperate by Child class with designated character like * or -
+        # Write to single row of csv for that timestep
+        # As entities may die or reproduce, columns must be dynamic - so no header row
+        # So need custom parsing
+        # Timestep, time, class, num_class, pos_x_id, pos_y_id, ..., class, num_class, ...
+        # (Need filename as datetime will change from creation)
+        pass
+
+    @staticmethod
+    def load_from_csv(filename, timestep):
+        # Parse particular row of CSV
+        # Read * and classname following, restart indexing, read all until * character
+        # Replace current Particle.all with what is read
+        pass
+
+
+    # -------------------------------------------------------------------------
+    # Animation utilities
+    # TODO: Make some of these hidden!
+
+    @staticmethod
+    def animate_timestep(timestep):
+        # Nice print animation in progress - Can we take secondary arguments like total num timesteps?
+        # would allow us to print progress. If not then need Particle.num_timesteps set manually
+        # Call on load_from_csv ? to load in current Particle.all system state
+        # This function will be called by FuncAnimation
+        # Establish fig, ax
+        # IF COM tracking: 
+        #       Call on centre_of_mass, and scene_bounds
+        # Iterate through classes with nonzero count:
+        #       COM scale background elements positions
+        #       cls.background_plot()   (Draw background like attractions, doors etc)
+        # Iterate through every particle instance:
+        #       COM scale particle positions
+        #       particle.plot()   (Draw each particle according to its specific plot function)
+        # plt.show() 
+        pass
+
     
 
 
@@ -169,11 +238,31 @@ class Prey(Particle):
     '''
     max_speed = 5
 
+    mass = 7 
+
     def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
         super().__init__(position, velocity)
         pass
 
     def update_acceleration(self):
-        # go through all in Particle.all[Prey] and Particle.all[Predator]
+        # go through all in Particle.all[Prey] and Particle.all[Predator] to work out forces
+        # acceleration by dividing by self.mass
+        # Use this point to track killing as well: use remove_by_id method if any Predator too close
+        # Could have rule that this spawns in a new predator?? cool
+        pass
+
+    # -------------------------------------------------------------------------
+    # Animation utilities
+
+    def plot(self, fig, ax):
+        # Plot individual Prey particle onto existing fig, ax
+        # unpack fig, ax
+        # ax.plot(self.position[0], self.position[1])   sort of thing
+        pass
+
+    @classmethod
+    def background_plot(cls, fig, ax):
+        # Similar sort of thing, using cls.wall_limit_x etc to draw things
+
         pass
 
