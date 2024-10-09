@@ -281,6 +281,11 @@ class Particle:
 
     @staticmethod
     def write_state_to_csv():
+        '''
+        Takes current system state of all child instances at a particular timestep.
+        Composes a CSV row entry to encode this, calling each child class to write it's own instances.
+        Used to recursively record system's state for each timestamp in SSD.
+        '''
         # Compose CSV row entry
         system_state_list = [Particle.current_step, Particle.current_time]
         for classname in Particle.pop_counts_dict.keys():
@@ -305,6 +310,12 @@ class Particle:
 
     @staticmethod
     def load_state_from_csv(timestep):
+        '''
+        Reads from a CSV of system states. Iterates through rows until it reaches right timestep.
+        Then calls on each child class to read it's entries when its name is mentioned, 
+        each time shifting a starting index.
+        '''
+
         # Open correct row in CSV
         with open(Particle.csv_path, mode='r', newline='') as file:
             # Loop through the CSV rows until reaching the desired row
@@ -324,7 +335,6 @@ class Particle:
             if system_state_list[idx_shift] == 'END':
                 break
             class_name = globals()[system_state_list[idx_shift]]
-            class_pop = int(system_state_list[idx_shift+1])
             # Call child class's list reader, get new start point
             # This reinstantiaties all instances under the hood
             idx_shift = class_name.read_csv_list(system_state_list, idx_shift)
@@ -350,9 +360,6 @@ class Particle:
         #       particle.plot()   (Draw each particle according to its specific plot function)
         # plt.show() 
         pass
-
-    
-
 
 
 
@@ -384,7 +391,18 @@ class Prey(Particle):
         # by the main CSV function
         # Prey, NumPrey, ID1, alive?, posx, posy, velx, vely, .. ID2, ...,  ,|,
         # Converts this into NumPrey many instances to recover state from CSV
-        pass
+        child_list = [cls.__name__, Particle.pop_counts_dict[cls.__name__]]
+        for child in cls.iterate_class_instances():
+            # Individual child instance
+            child_list += [child.id, \
+                           child.position[0], child.position[1], \
+                           child.last_position[0],child.last_position[1],
+                           child.velocity[0], child.velocity[1],
+                           child.acceleration[0], child.acceleration[1]
+                           ]
+        # End pipe for parsing
+        child_list += ['|']
+        return child_list
 
     @classmethod
     def read_csv_list(cls, system_state_list: list, idx_shift: int):
@@ -393,7 +411,38 @@ class Prey(Particle):
         # Converts this into NumPrey many instances to recover state from CSV
 
         # Need to get rid of all current instances first
-        # Update idx_shift
+        max_id = Particle.max_ids_dict[cls.__name__]
+        for id in range(max_id+1):
+            cls.remove_by_id(id)
+        
+        # Get number of children
+        class_pop = int(system_state_list[idx_shift+1])
+        # Shift focus to start of block
+        idx_shift += 2
+        # Loop through each child instance
+        for i in range(class_pop):
+            # Create new instance
+            child = cls()
+            child.id = system_state_list[idx_shift]
+            child.position = np.array([float(system_state_list[idx_shift+1]), \
+                                       float(system_state_list[idx_shift+2])])
+            child.last_position = np.array([float(system_state_list[idx_shift+3]), \
+                                       float(system_state_list[idx_shift+4])])
+            child.velocity = np.array([float(system_state_list[idx_shift+5]), \
+                                       float(system_state_list[idx_shift+6])])
+            child.acceleration = np.array([float(system_state_list[idx_shift+7]), \
+                                       float(system_state_list[idx_shift+8])])
+            
+            # Add child to 'all' list
+            Particle.all[cls.__name__][child.id] = child
+            # Update idx shift to next child id
+            idx_shift += 9
+
+        # Check for correct parsing at the end
+        if system_state_list[idx_shift] != '|':
+            raise IndexError(f"Something wrong with parsing, ~ column {idx_shift}.")
+        
+        # Return shifted index, with all children now instantiated.
         return idx_shift
 
     # -------------------------------------------------------------------------
