@@ -19,19 +19,16 @@ class Particle:
     # This is used to fully encode the system's state at each timestep.
     all = {}
 
-    # Default time step length used for simulation
+    # Track time and time step
     delta_t = 0.01
-    # Current time, to be updated each timestep
     current_time = 0
-    num_timesteps = 100
+    current_step: int = 0
+    num_timesteps: int = 100
 
     # Basic wall boundaries (Region is [0,walls_x_lim]X[0,walls_y_lim] )
     walls_x_lim = 100
     walls_y_lim = 100
     
-    # Default time step length used for simulation
-    delta_t = 0.01
-
     # Initialisation function
     def __init__(self,
                 position: np.ndarray = None,
@@ -144,7 +141,6 @@ class Particle:
 
     # -------------------------------------------------------------------------
     # Distance utilities
-    # TODO: Make some of these hidden!
 
     torus = False
     '''
@@ -270,43 +266,41 @@ class Particle:
             # Enforce torus wrapping
             if Particle.torus:
                 i.torus_wrap()
-
-            
-
-        # Build class list by checking class.get_count() method
-        # For each class in list, use iterator method to access each id
-        # Use current state to work out acceleration for every existing particle
-        # for particle in [iterator]:
-        #       particle.update_acceleration()
-        # For each particle update its (current, last) by Verlet recurrence relation using its acceleration
-        # Implement speed limit by moving in direction of new (current-last) but only distance=particle.max_speed*delta_t along
-        # If torus, pass final position through modulo functions
-        # Any other main things to consider?
-        pass
+        
+        # Increment time
+        Particle.current_time += Particle.delta_t
+        Particle.current_step += 1
     
-
     # -------------------------------------------------------------------------
     # CSV utilities
-    # Need to be smart to check variable lengths
     # TODO: Make some of these hidden!
-
 
     @staticmethod
     def write_to_csv(filename):
-        # Flatten all info from current state Particle.all using heuristic
-        # Seperate by Child class with designated character like * or -
-        # Write to single row of csv for that timestep
-        # As entities may die or reproduce, columns must be dynamic - so no header row
-        # So need custom parsing
-        # Timestep, time, class, num_class, pos_x_id, pos_y_id, ..., class, num_class, ...
-        # (Need filename as datetime will change from creation)
+        # open or create csv
+        # create list to add to
+        # add timestep info
+        # For each class present
+        #       use its class method to add all its instances to a list
+        # Timestep, Time, Prey, NumPrey, ID1, alive?, posx, posy, velx, vely, .. ID2, ...,  ,|, Predator, ..
+        # Use * as end character
         pass
 
     @staticmethod
     def load_from_csv(filename, timestep):
-        # Parse particular row of CSV
-        # Read * and classname following, restart indexing, read all until * character
-        # Replace current Particle.all with what is read
+        # open CSV, navigate to row, read into list
+        # parse timestep info
+        # index = 0, finished = False
+        # while not finished:
+        #       if list[index] = '*':
+        #           finished = True
+        #           break
+        #       list[index] = classname
+        #       list[index+1] = class_pop
+        #       call class's load_csv method to read next class_pop*per_id many entries
+        #       update index to be after pipe |
+        #       
+
         pass
 
 
@@ -353,7 +347,25 @@ class Prey(Particle):
         # Use this point to track killing as well: use remove_by_id method if any Predator too close
         # Could have rule that this spawns in a new predator?? cool
         pass
+    
+    # -------------------------------------------------------------------------
+    # CSV utilities
 
+    @classmethod
+    def write_csv_list(cls):
+        # Formats current set of class instances into a list, to be added to a CSV row
+        # by the main CSV function
+        # Prey, NumPrey, ID1, alive?, posx, posy, velx, vely, .. ID2, ...,  ,|,
+        # Converts this into NumPrey many instances to recover state from CSV
+        pass
+
+    @classmethod
+    def read_csv_list(cls):
+        # Given a list from main CSV reading function. This looks like:
+        # Prey, NumPrey, ID1, alive?, posx, posy, velx, vely, .. ID2, ...,  ,|,
+        # Converts this into NumPrey many instances to recover state from CSV
+        pass
+    
     # -------------------------------------------------------------------------
     # Animation utilities
 
