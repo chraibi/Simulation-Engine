@@ -282,7 +282,7 @@ class Particle:
     @staticmethod
     def write_state_to_csv():
         # Compose CSV row entry
-        system_state_list = []
+        system_state_list = [Particle.current_step, Particle.current_time]
         for classname in Particle.pop_counts_dict.keys():
             # Access child class by string name using globals() dictionary
             my_class = globals()[classname]
@@ -313,25 +313,22 @@ class Particle:
             target_row_index = timestep+1 
             for i, row in enumerate(reader):
                 if i == target_row_index:
-                    current_step_strings = row
+                    system_state_list = row
                     #current_step = [float(x) for x in current_step_strings] # Convert string -> float!
                     break
-        # open CSV, navigate to row, read into list
-        # parse timestep info
-        # index = 0, finished = False
-        # while not finished:
-        #       if list[index] = '*':
-        #           finished = True
-        #           break
-        #       list[index] = classname
-        #       list[index+1] = class_pop
-        #       call class's load_csv method to read next class_pop*per_id many entries
-        #       update index to be after pipe |
-        #       
-
-        pass
-
-
+        
+        # Parse timestep info
+        Particle.current_step, Particle.current_time = system_state_list[0], system_state_list[0]
+        idx_shift = 0
+        while True:
+            if system_state_list[idx_shift] == 'END':
+                break
+            class_name = globals()[system_state_list[idx_shift]]
+            class_pop = int(system_state_list[idx_shift+1])
+            # Call child class's list reader, get new start point
+            # This reinstantiaties all instances under the hood
+            idx_shift = class_name.read_csv_list(system_state_list, idx_shift)
+        
     # -------------------------------------------------------------------------
     # Animation utilities
     # TODO: Make some of these hidden!
@@ -390,11 +387,14 @@ class Prey(Particle):
         pass
 
     @classmethod
-    def read_csv_list(cls):
+    def read_csv_list(cls, system_state_list: list, idx_shift: int):
         # Given a list from main CSV reading function. This looks like:
         # Prey, NumPrey, ID1, alive?, posx, posy, velx, vely, .. ID2, ...,  ,|,
         # Converts this into NumPrey many instances to recover state from CSV
-        pass
+
+        # Need to get rid of all current instances first
+        # Update idx_shift
+        return idx_shift
 
     # -------------------------------------------------------------------------
     # Animation utilities
