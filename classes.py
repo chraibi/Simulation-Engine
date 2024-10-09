@@ -13,7 +13,8 @@ class Particle:
     #  Establish dictionaries to track the population count and maximum ID number
     #  for each child class.  eg {bird: 5, plane: 3, ...}
     pop_counts_dict = {} 
-    max_ids_dict = {}   
+    max_ids_dict = {}
+
     # Establish big dictionary of all child instances, referenced by ID number
     # eg {bird: {0:instance0, 1:instance1, ...}, plane: {0: ...}, ... }
     all = {}
@@ -77,9 +78,9 @@ class Particle:
             Particle.all[class_name] = {}
         Particle.all[class_name][self.id] = self
 
-        # ---------------------------------------------
-
+    # -------------------------------------------------------------------------
     # Management utilities
+
     @classmethod
     def get_count(cls):
         ''' Return a class type count. eg  num_birds = Bird.get_count(). '''
@@ -115,26 +116,18 @@ class Particle:
         for id, instance in Particle.all.get(cls.__name__, {}).items():
             yield instance
         
-    
-    
-
-
-
-
-
-
-
-
 
     def __str__(self) -> str:
         ''' Print statement for particles. '''
-        return f"Particle {self.id} at position {self.position} with velocity {self.velocity}"
+        return f"Particle {self.id} at position {self.position} with velocity {self.velocity}."
 
     def __repr__(self) -> str:
         ''' Debug statement for particles. '''
         return f"{self.__class__.__name__}({self.id},{self.position},{self.velocity})"
-    
+
+    # -------------------------------------------------------------------------
     # Numerical utilities
+
     def dist(self,other) -> float:
         ''' 
         Calculates squared euclidean distance between particles.
@@ -150,12 +143,22 @@ class Particle:
         return (other.position-self.position)/np.sqrt(self.dist(other))
     
     def normalise_velocity(self, max_speed: float):
-        ''' Hard normalise a particle's speed to a specified max speed. '''
+        ''' Hardcode normalise a particle's velocity to a specified max speed. '''
         speed = np.sqrt(np.sum(self.velocity)**2)
         if speed > max_speed:
             self.velocity *= max_speed/speed
 
-    # General Verlet Integration timestep
+    @staticmethod
+    def timestep_update(speed_limit: bool = False):
+        # Build class list by checking pop_counts_dict for nonzero
+        # For each class in list, use iterator method to access each id
+        # Use current state to work out acceleration for every existing particle
+        # for particle in [iterator]:
+        #       particle.update_acceleration()
+        # For each particle update its (current, last) by Verlet recurrence relation using its acceleration
+        # Implement speed limit by moving in direction of new (current-last) but only distance=particle.max_speed*delta_t along
+        # Any other main things to consider?
+        pass
     
     
 
@@ -164,8 +167,13 @@ class Prey(Particle):
     '''
     Prey particle for flock of birds simulation.
     '''
-    # List of all 
-    all = []
+    max_speed = 5
+
     def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
         super().__init__(position, velocity)
+        pass
+
+    def update_acceleration(self):
+        # go through all in Particle.all[Prey] and Particle.all[Predator]
+        pass
 
