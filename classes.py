@@ -19,6 +19,8 @@ class Particle:
     # This is used to fully encode the system's state at each timestep.
     all = {}
 
+    # Default time step length used for simulation
+    delta_t = 0.01
     # Current time, to be updated each timestep
     current_time = 0
     num_timesteps = 100
@@ -39,7 +41,7 @@ class Particle:
         Start with random position, and zero velocity and zero acceleration.
         Set an ID value and then increment dictionaries
         '''
-        # ---------------------------------------------
+        # ---------------
         # Motion
 
         # If no starting position given, assign random within 2D wall limits
@@ -56,10 +58,10 @@ class Particle:
             # v = (current-last)/dt , so last = current - v*dt
             self.last_position = self.position - self.velocity*self.delta_t
 
-        # Start with zero acceleration to initialise as attribute
+        # Initialise acceleration as attribute
         self.acceleration = np.zeros(2)
 
-        # ---------------------------------------------
+        # --------------
         # Indexing
 
         # Get Child class name of current instance
@@ -83,7 +85,7 @@ class Particle:
         Particle.all[class_name][self.id] = self
 
     # -------------------------------------------------------------------------
-    # Management utilities
+    # Instance management utilities
     # TODO: Make some of these hidden!
 
     @classmethod
@@ -189,11 +191,19 @@ class Particle:
         dist, dirn = self.dist(other,return_both=True)
         return dirn/np.sqrt(dist)
                
-    def normalise_velocity(self, max_speed: float):
+    def enforce_speed_limit(self):
         ''' Hardcode normalise a particle's velocity to a specified max speed. '''
-        speed = np.sqrt(np.sum(self.velocity)**2)
-        if speed > max_speed:
-            self.velocity *= max_speed/speed
+        # Speed limit
+        if self.max_speed is None:
+            pass
+        else:
+            # Hardcode speed limit, restrict displacement
+            speed = np.sqrt(np.sum(self.velocity**2))
+            if speed > self.max_speed:
+                # Change velocity
+                self.velocity *= self.max_speed/speed
+                # Change current position to backtrack
+                self.position = self.last_position + self.velocity*Particle.delta_t
 
     @staticmethod
     def centre_of_mass():
@@ -222,10 +232,40 @@ class Particle:
                     pass
         return max_dist
         
-
+    # -------------------------------------------------------------------------
+    # Main timestep function
 
     @staticmethod
-    def timestep_update(speed_limit: bool = False):
+    def timestep_update():
+        '''
+        Main timestep function. 
+        - Calls each child class instance to update its acceleration,
+            according to its own force rules. 
+        - Uses 'Verlet Integration' timestepping method, predicting instance's position after a 
+            timestep using its current position, last position, and acceleration:
+            x_next = 2*x_now - x_last + acc*(dt)^2
+        - Passes predicted new position through checks, including speed limits,
+            and torus modulo function on coordinates.
+        '''
+        for i in Particle.iterate_all_instances:
+            # Let particle update its acceleration 
+            i.update_acceleration()
+
+            # Verlet Integration
+            # Use tuple unpacking so we dont need a temp variable
+            i.position, i.last_position = (2*i.position - i.last_position + \
+                                            i.acceleration*(Particle.delta_t)**2), i.position
+            
+            # Update velocity
+            displacement = (i.position - i.last_position)
+            i.velocity = displacement/Particle.delta_t
+
+            # Speed limit (if given)
+            i.enforce_speed_limit()
+            
+
+            
+
         # Build class list by checking class.get_count() method
         # For each class in list, use iterator method to access each id
         # Use current state to work out acceleration for every existing particle
