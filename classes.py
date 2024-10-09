@@ -1,7 +1,8 @@
 # classes.py - generalising pedestrian.py
 
+import os
+import csv
 import numpy as np
-
 
 class Particle:
     '''
@@ -275,19 +276,46 @@ class Particle:
     # CSV utilities
     # TODO: Make some of these hidden!
 
-    @staticmethod
-    def write_to_csv(filename):
-        # open or create csv
-        # create list to add to
-        # add timestep info
-        # For each class present
-        #       use its class method to add all its instances to a list
-        # Timestep, Time, Prey, NumPrey, ID1, alive?, posx, posy, velx, vely, .. ID2, ...,  ,|, Predator, ..
-        # Use * as end character
-        pass
+    # CSV path, to be set by main script
+    csv_path = "my_csv.csv"
 
     @staticmethod
-    def load_from_csv(filename, timestep):
+    def write_state_to_csv():
+        # Compose CSV row entry
+        system_state_list = []
+        for classname in Particle.pop_counts_dict.keys():
+            # Access child class by string name using globals() dictionary
+            my_class = globals()[classname]
+            # Call child class's list writer, add to general list
+            system_state_list += my_class.write_csv_list()
+        system_state_list += ['END']
+
+        # If CSV doesn't exist, make it with an initial header on row 0, then write state
+        if not os.path.exists(Particle.csv_path):
+            with open(Particle.csv_path, mode='w', newline='') as file:
+                writer = csv.writer(file)
+                header_row = ['Timestep', 'Time', 'ClassName', 'ClassPop', 'InstanceID', 'Attributes', '...','|','ClassName','...','|','END']
+                writer.writerow(header_row)
+                writer.writerow(system_state_list)
+        # Else open in append mode and write
+        else:
+            with open(Particle.csv_path, mode='a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(system_state_list)
+
+    @staticmethod
+    def load_state_from_csv(timestep):
+        # Open correct row in CSV
+        with open(Particle.csv_path, mode='r', newline='') as file:
+            # Loop through the CSV rows until reaching the desired row
+            # This must be done since CSV doesn't have indexed data structure
+            reader = csv.reader(file)
+            target_row_index = timestep+1 
+            for i, row in enumerate(reader):
+                if i == target_row_index:
+                    current_step_strings = row
+                    #current_step = [float(x) for x in current_step_strings] # Convert string -> float!
+                    break
         # open CSV, navigate to row, read into list
         # parse timestep info
         # index = 0, finished = False
@@ -329,6 +357,8 @@ class Particle:
     
 
 
+
+
 class Prey(Particle):
     '''
     Prey particle for flock of birds simulation.
@@ -365,7 +395,7 @@ class Prey(Particle):
         # Prey, NumPrey, ID1, alive?, posx, posy, velx, vely, .. ID2, ...,  ,|,
         # Converts this into NumPrey many instances to recover state from CSV
         pass
-    
+
     # -------------------------------------------------------------------------
     # Animation utilities
 
