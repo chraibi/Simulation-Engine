@@ -10,12 +10,11 @@ class Particle:
     # -------------------------------------------------------------------------
     # Attributes
 
-    #  Establish dictionaries to track the population count and maximum ID number
-    #  for each child class.  eg {bird: 5, plane: 3, ...}
+    #  Dictionaries for population count and maximum ID number of each child class
     pop_counts_dict = {} 
     max_ids_dict = {}
 
-    # Establish big dictionary of all child instances, referenced by ID number
+    # Dictionary of all child classes, referenced by ID number
     # eg {bird: {0:instance0, 1:instance1, ...}, plane: {0: ...}, ... }
     # This is used to fully encode the system's state at each timestep.
     all = {}
@@ -27,8 +26,7 @@ class Particle:
     # Basic wall boundaries (Region is [0,walls_x_lim]X[0,walls_y_lim] )
     walls_x_lim = 100
     walls_y_lim = 100
-    torus = False
-
+    
     # Default time step length used for simulation
     delta_t = 0.01
 
@@ -115,13 +113,19 @@ class Particle:
             raise KeyError(f"Instance with id {id} not found in {cls.__name__}.")
         
     @classmethod
-    def iterate_instances(cls):
-        ''' Iterate over all instances of a given class by id '''
+    def iterate_class_instances(cls):
+        ''' Iterate over all instances of a given class by id. '''
         # This function is a 'generator' object in Python due to the use of 'yield'.
         # It unpacks each {id: instance} dictionary item within our Particle.all[classname] dictionary
         # It then 'yields' the instance. Can be used in a for loop as iterator.
         for id, instance in Particle.all.get(cls.__name__, {}).items():
             yield instance
+
+    @staticmethod
+    def iterate_all_instances():
+        ''' Iterate over all existing child instances. '''
+        dict_list = {}
+        pass
         
 
     def __str__(self) -> str:
@@ -133,25 +137,54 @@ class Particle:
         return f"{self.__class__.__name__}({self.id},{self.position},{self.velocity})"
 
     # -------------------------------------------------------------------------
-    # Numerical utilities
+    # Distance utilities
     # TODO: Make some of these hidden!
 
-    def dist(self,other) -> float:
+    torus = False
+    '''
+    Periodic boundaries -> We have to check different directions for shortest dist.
+    Need to check tic-tac-toe grid of possible directions:
+            x | x | x
+            ---------
+            x | o | x
+            ---------
+            x | x | x
+    We work from top right, going clockwise.
+    '''
+    up, right = np.array([0,walls_y_lim]), np.array([walls_x_lim,0])
+    torus_offsets = [np.zeros(2), up+right, right, -up+right, -up, -up-right, -right, up-right, up]
+
+    def torus_dist(self,other):
+        directions = [(other.position + i) - self.position  for i in Particle.torus_offsets]
+        distances = [np.sum(i**2) for i in directions]
+        mindex = np.argmin(distances)
+        return distances[mindex], directions[mindex]
+
+    def dist(self,other, return_both: bool = False):
         ''' 
-        Calculates squared euclidean distance between particles.
+        Calculates SQUARED euclidean distance between particles.
         Usage: my_dist = particle1.dist(particle2).
+        If Particle.torus, then finds shortest squared distance from set of paths.
         '''
-        # TODO: optional bool for Torus shaped region
-        return np.sum((self.position-other.position)**2)
-    
-    def dirn(self,other) -> float:
+        if Particle.torus:
+            dist, dirn = self.torus_dist(other)
+        else:
+            dirn = other.position - self.position
+            dist = np.sum((dirn)**2)
+
+        if return_both:
+            return dist, dirn
+        else:
+            return dist
+            
+    def unit_dirn(self,other) -> float:
         '''
         Calculates the direction unit vector pointing from particle1 to particle2.
-        Usage: my_vec = particle1.dist(particle2).
-        '''
-        # TODO: optional bool for Torus shaped region
-        return (other.position-self.position)/np.sqrt(self.dist(other))
-    
+        Usage: my_vec = particle1.dirn(particle2).
+        '''        
+        dist, dirn = self.dist(other,return_both=True)
+        return dirn/np.sqrt(dist)
+               
     def normalise_velocity(self, max_speed: float):
         ''' Hardcode normalise a particle's velocity to a specified max speed. '''
         speed = np.sqrt(np.sum(self.velocity)**2)
@@ -160,6 +193,7 @@ class Particle:
 
     @staticmethod
     def centre_of_mass():
+
         # TODO: return COM, worked out from Particle.all instance.position and instance.mass
         pass
 
