@@ -193,17 +193,20 @@ class Particle:
                
     def enforce_speed_limit(self):
         ''' Hardcode normalise a particle's velocity to a specified max speed. '''
-        # Speed limit
-        if self.max_speed is None:
-            pass
-        else:
-            # Hardcode speed limit, restrict displacement
-            speed = np.sqrt(np.sum(self.velocity**2))
-            if speed > self.max_speed:
-                # Change velocity
-                self.velocity *= self.max_speed/speed
-                # Change current position to backtrack
-                self.position = self.last_position + self.velocity*Particle.delta_t
+        # Hardcode speed limit, restrict displacement
+        speed = np.sqrt(np.sum(self.velocity**2))
+        if speed > self.max_speed:
+            # Change velocity
+            self.velocity *= self.max_speed/speed
+            # Change current position to backtrack
+            self.position = self.last_position + self.velocity*Particle.delta_t
+
+    def torus_wrap(self):
+        ''' Wrap coordinates into Torus world with modulo functions'''
+        x,y = self.position
+        x = x % Particle.walls_x_lim
+        y = y % Particle.walls_y_lim
+        self.position = np.array([x,y])
 
     @staticmethod
     def centre_of_mass():
@@ -260,9 +263,13 @@ class Particle:
             displacement = (i.position - i.last_position)
             i.velocity = displacement/Particle.delta_t
 
-            # Speed limit (if given)
-            i.enforce_speed_limit()
-            
+            # Enforce speed limit
+            if i.max_speed is not None:
+                i.enforce_speed_limit()
+
+            # Enforce torus wrapping
+            if Particle.torus:
+                i.torus_wrap()
 
             
 
