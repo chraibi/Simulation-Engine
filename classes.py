@@ -124,8 +124,14 @@ class Particle:
     @staticmethod
     def iterate_all_instances():
         ''' Iterate over all existing child instances. '''
+        # Create dictionary with all child instances
         dict_list = {}
-        pass
+        for i in Particle.all.values():
+            dict_list.update(i)
+        # Create generator through the dictionary values (instances)
+        for id, instance in dict_list.items():
+            yield instance
+        
         
 
     def __str__(self) -> str:
