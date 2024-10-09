@@ -132,8 +132,6 @@ class Particle:
         for id, instance in dict_list.items():
             yield instance
         
-        
-
     def __str__(self) -> str:
         ''' Print statement for particles. '''
         return f"Particle {self.id} at position {self.position} with velocity {self.velocity}."
@@ -199,14 +197,32 @@ class Particle:
 
     @staticmethod
     def centre_of_mass():
-
-        # TODO: return COM, worked out from Particle.all instance.position and instance.mass
-        pass
+        ''' Compute COM of all particle instances. '''
+        total_mass = 0
+        com = np.zeros(2)
+        # Call generator to run over all particle instances
+        for instance in Particle.iterate_all_instances:
+            mass = instance.mass
+            com += mass*instance.position
+            total_mass += mass
+        com *= 1/total_mass
 
     @staticmethod
-    def scene_bounds():
-        # TODO: return furthest points from COM to bounds, get a scaling factor
-        pass
+    def scene_scale():
+        ''' Compute the maximum x or y distance a particle has from the COM. '''
+        com = Particle.centre_of_mass()
+        max_dist = 0
+        # Call generator to find max dist from COM
+        for instance in Particle.iterate_all_instances:
+            vec_from_com = instance.position - com
+            for i in vec_from_com:
+                if i > max_dist:
+                    max_dist = i
+                else:
+                    pass
+        return max_dist
+        
+
 
     @staticmethod
     def timestep_update(speed_limit: bool = False):
