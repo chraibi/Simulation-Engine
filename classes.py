@@ -3,6 +3,8 @@
 import os
 import csv
 import numpy as np
+from matplotlib.patches import Polygon
+from matplotlib.transforms import Affine2D
 
 class Particle:
     '''
@@ -27,8 +29,11 @@ class Particle:
     num_timesteps: int = 100
 
     # Basic wall boundaries (Region is [0,walls_x_lim]X[0,walls_y_lim] )
-    walls_x_lim = 100
-    walls_y_lim = 100
+    walls_x_lim: float = 100
+    walls_y_lim: float = 100
+
+    # Bool whether to track COM when plotting
+    track_com: bool = True
     
     # Initialisation function
     def __init__(self,
@@ -231,7 +236,13 @@ class Particle:
                 else:
                     pass
         return max_dist
-        
+    
+    def orient_to_com(self, com, scale):
+        ''' Affine translation on point coordinates to prepare for plotting.  '''
+        centre = np.array([0.5*Particle.walls_x_lim, 0.5*Particle.walls_y_lim])
+        term = np.min(centre)
+        return centre + (self.position - com)*term/scale
+
     # -------------------------------------------------------------------------
     # Main timestep function
 
@@ -324,13 +335,13 @@ class Particle:
             target_row_index = timestep+1 
             for i, row in enumerate(reader):
                 if i == target_row_index:
-                    system_state_list = row
+                    system_state_list = row.copy()
                     #current_step = [float(x) for x in current_step_strings] # Convert string -> float!
                     break
         
         # Parse timestep info
-        Particle.current_step, Particle.current_time = system_state_list[0], system_state_list[0]
-        idx_shift = 0
+        Particle.current_step, Particle.current_time = system_state_list[0], system_state_list[1]
+        idx_shift = 2
         while True:
             if system_state_list[idx_shift] == 'END':
                 break
@@ -344,24 +355,39 @@ class Particle:
     # TODO: Make some of these hidden!
 
     @staticmethod
-    def animate_timestep(timestep):
-        # Nice print animation in progress - Can we take secondary arguments like total num timesteps?
-        # would allow us to print progress. If not then need Particle.num_timesteps set manually
-        # Call on load_from_csv ? to load in current Particle.all system state
-        # This function will be called by FuncAnimation
-        # Establish fig, ax
-        # IF COM tracking: 
-        #       Call on centre_of_mass, and scene_bounds
-        # Iterate through classes with nonzero count:
-        #       COM scale background elements positions
-        #       cls.background_plot()   (Draw background like attractions, doors etc)
-        # Iterate through every particle instance:
-        #       COM scale particle positions
-        #       particle.plot()   (Draw each particle according to its specific plot function)
-        # plt.show() 
-        pass
+    def animate_timestep(timestep, ax):
+        '''
+        Draws the state of the current system onto a matplotlib ax object provided.
+        This function will be called by FuncAnimation at each timestep in the main simulation script.
+        Calls upon each child instance to plot itself, 
+        as well as calling the Environment class for backdrop.
+        ''' 
+        # Print calculation progress
+        print(f"----- Animation progress: {timestep} / {Particle.num_timesteps} -----" ,end="\r", flush=True)
 
+        # Clear axis between frames, set axes limits again and title
+        ax.clear()
+        ax.set_xlim(0, Particle.walls_x_lim)  # Set x-axis limits
+        ax.set_ylim(0, Particle.walls_y_lim)  # Set y-axis limits
+        ax.set_aspect('equal', adjustable='box')
+        ax.set_title(f"Time step: {round((Particle.current_step))}, Time: {Particle.current_time}.")
 
+        # Call upon Environment class to draw the frame's backdrop
+        Environment.draw_backdrop(ax)
+
+        # Load in system state from CSV
+        Particle.load_state_from_csv(timestep)
+
+        # Decide if tracking the COM in each frame
+        if Particle.track_com:
+            com = Particle.centre_of_mass()
+            scene_scale = Particle.scene_scale
+        else:
+            com, scene_scale = None, None
+
+        # Iterate over child instances in system and plot
+        for instance in Particle.iterate_all_instances:
+            instance.instance_plot(ax,com,scene_scale)
 
 class Prey(Particle):
     '''
@@ -389,7 +415,7 @@ class Prey(Particle):
     def write_csv_list(cls):
         # Formats current set of class instances into a list, to be added to a CSV row
         # by the main CSV function
-        # Prey, NumPrey, ID1, alive?, posx, posy, velx, vely, .. ID2, ...,  ,|,
+        # Prey, NumPrey, ID1, posx, posy, velx, vely, .. ID2, ...,  ,|,
         # Converts this into NumPrey many instances to recover state from CSV
         child_list = [cls.__name__, Particle.pop_counts_dict[cls.__name__]]
         for child in cls.iterate_class_instances():
@@ -407,21 +433,20 @@ class Prey(Particle):
     @classmethod
     def read_csv_list(cls, system_state_list: list, idx_shift: int):
         # Given a list from main CSV reading function. This looks like:
-        # Prey, NumPrey, ID1, alive?, posx, posy, velx, vely, .. ID2, ...,  ,|,
+        # Prey, NumPrey, ID1, posx, posy, velx, vely, .. ID2, ...,  ,|,
         # Converts this into NumPrey many instances to recover state from CSV
 
-        # Need to get rid of all current instances first
+        # First get rid of all existing instances
         max_id = Particle.max_ids_dict[cls.__name__]
         for id in range(max_id+1):
             cls.remove_by_id(id)
         
-        # Get number of children
+        # Get number of children, then shift to start of parsing block
         class_pop = int(system_state_list[idx_shift+1])
-        # Shift focus to start of block
         idx_shift += 2
         # Loop through each child instance
         for i in range(class_pop):
-            # Create new instance
+            # Create new child instance, assign attributes
             child = cls()
             child.id = system_state_list[idx_shift]
             child.position = np.array([float(system_state_list[idx_shift+1]), \
@@ -448,15 +473,72 @@ class Prey(Particle):
     # -------------------------------------------------------------------------
     # Animation utilities
 
-    def plot(self, fig, ax):
-        # Plot individual Prey particle onto existing fig, ax
-        # unpack fig, ax
-        # ax.plot(self.position[0], self.position[1])   sort of thing
+    # Triangle creator for directed markers
+    @staticmethod
+    def create_irregular_triangle(angle_rad):
+        # Define vertices for an irregular triangle (relative to origin)
+        triangle = np.array([[-0.5, -1], [0.5, -1], [0.0, 1]])
+        # Create a rotation matrix
+        rotation_matrix = np.array([[np.cos(angle_rad), -np.sin(angle_rad)],
+                                    [np.sin(angle_rad),  np.cos(angle_rad)]])
+        # Apply the rotation to the triangle vertices
+        return triangle @ rotation_matrix.T
+
+    def instance_plot(self, ax, com=None, scale=None):
+        ''' Plots individual Prey particle onto existing axis. '''
+
+        # Get plot position in frame
+        plot_position = self.position
+        if (com is not None) and (scale is not None):
+            plot_position = self.orient_to_com(com, scale)
+
+        # Get direction angle from velocity
+        theta = np.arctan2(self.velocity[1], self.velocity[0]) - np.pi/2
+
+        # Create a Polygon patch to represent the irregular triangle
+        triangle_shape = Prey.create_irregular_triangle(theta)
+        polygon = Polygon(triangle_shape, closed=True, facecolor='white', edgecolor='black')
+        
+        # Create and apply transformation of the polygon to the point
+        t = Affine2D().translate(plot_position[0], plot_position[1]) + ax.transData
+        polygon.set_transform(t)
+
+        # Plot polygon
+        ax.add_patch(polygon)
+        
+
+
+
+
+
+
+
+
+
+class Environment:
+    '''
+    Class containing details about the simulation environment, walls etc
+    '''
+    # Background colour for each type of environment
+    background_type = 'sky'
+    background_colour_dict = {"sky": "skyblue",
+                              "space": "k",
+                              "room": "w"}
+    
+    @staticmethod
+    def draw_background_colour(ax):
+        ax.set_facecolor(Environment.background_colour_dict[Environment.background_type])
+
+    @staticmethod
+    def draw_objects(ax):
         pass
 
-    @classmethod
-    def background_plot(cls, fig, ax):
-        # Similar sort of thing, using cls.wall_limit_x etc to draw things
-
-        pass
-
+    @staticmethod
+    def draw_backdrop(ax):
+        '''
+        Called by Particle.animate_timestep to set background for each frame, 
+         before drawing its particle objects over the top.
+        An ax is passed in and we call different functions to draw environment elements
+        '''
+        Environment.draw_background_colour(ax)
+        Environment.draw_objects(ax)
