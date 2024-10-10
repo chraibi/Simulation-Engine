@@ -210,6 +210,19 @@ class Particle:
         y = y % Particle.walls_y_lim
         self.position = np.array([x,y])
 
+    @classmethod
+    def centre_of_mass_class(cls):
+        ''' Compute COM of all particle instances. '''
+        total_mass = 0
+        com = np.zeros(2)
+        # Call generator to run over all particle instances
+        for instance in cls.iterate_class_instances:
+            mass = instance.mass
+            com += mass*instance.position
+            total_mass += mass
+        com *= 1/total_mass
+        return com
+    
     @staticmethod
     def centre_of_mass():
         ''' Compute COM of all particle instances. '''
@@ -221,6 +234,7 @@ class Particle:
             com += mass*instance.position
             total_mass += mass
         com *= 1/total_mass
+        return com
 
     @staticmethod
     def scene_scale():
@@ -441,10 +455,12 @@ class Prey(Particle):
     '''
     # -------------------------------------------------------------------------
     # Attributes
-    max_speed = 5
 
-    mass = 7 
-
+    prey_dist_thresh = 10**2
+    prey_repulsion_force = 5
+    com_attraction_force = 10
+    random_force = 2
+    
     # Initialisation
     def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
         '''
@@ -456,16 +472,36 @@ class Prey(Particle):
         self.mass = 5
         self.max_speed = 10
 
-    
     # -------------------------------------------------------------------------
     # Main force model 
 
     def update_acceleration(self):
-        # go through all in Particle.all[Prey] and Particle.all[Predator] to work out forces
-        # acceleration by dividing by self.mass
-        # Use this point to track killing as well: use remove_by_id method if any Predator too close
-        # Could have rule that this spawns in a new predator?? cool
-        pass
+        '''
+        Calculates main acceleration term from force-based model of environment.
+        '''
+        # Instantiate force term
+        force_term = np.zeros(2)
+
+        # Prey repulsion force - currently scales with 1/d
+        for bird in Prey.iterate_class_instances():
+            if bird == self:
+                continue
+            elif self.dist(bird) < Prey.prey_dist_thresh:
+                force_term += self.unit_dirn(bird)*(self.prey_repulsion_force/(np.sqrt(self.dist(bird))))
+            else:
+                continue
+    
+        # Attraction to COM
+        com = Prey.centre_of_mass_class()
+        attract_dist = np.sum((com - self.position)**2)
+        force_term += (com - self.position)*(self.com_attraction_force/(attract_dist))
+
+        # Random force - stochastic noise
+        # Generate between [0,1], map to [0,2] then shift to [-1,1]
+        force_term += ((np.random.rand(2)*2)-1)*self.random_force
+
+        # Update acceleration = Force / mass
+        self.acceleration = force_term / self.mass
     
     # -------------------------------------------------------------------------
     # CSV utilities
