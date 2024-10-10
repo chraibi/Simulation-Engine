@@ -216,7 +216,7 @@ class Particle:
         total_mass = 0
         com = np.zeros(2)
         # Call generator to run over all particle instances
-        for instance in cls.iterate_class_instances:
+        for instance in cls.iterate_class_instances():
             mass = instance.mass
             com += mass*instance.position
             total_mass += mass
@@ -229,7 +229,7 @@ class Particle:
         total_mass = 0
         com = np.zeros(2)
         # Call generator to run over all particle instances
-        for instance in Particle.iterate_all_instances:
+        for instance in Particle.iterate_all_instances():
             mass = instance.mass
             com += mass*instance.position
             total_mass += mass
@@ -242,7 +242,7 @@ class Particle:
         com = Particle.centre_of_mass()
         max_dist = 0
         # Call generator to find max dist from COM
-        for instance in Particle.iterate_all_instances:
+        for instance in Particle.iterate_all_instances():
             vec_from_com = instance.position - com
             for i in vec_from_com:
                 if i > max_dist:
@@ -255,7 +255,7 @@ class Particle:
         ''' Affine translation on point coordinates to prepare for plotting.  '''
         centre = np.array([0.5*Particle.walls_x_lim, 0.5*Particle.walls_y_lim])
         term = np.min(centre)
-        return centre + (self.position - com)*term/scale
+        return centre + (self.position - com) * (term/scale)
 
     # -------------------------------------------------------------------------
     # Main timestep function
@@ -272,7 +272,7 @@ class Particle:
         - Passes predicted new position through checks, including speed limits,
             and torus modulo function on coordinates.
         '''
-        for i in Particle.iterate_all_instances:
+        for i in Particle.iterate_all_instances():
             # Let particle update its acceleration 
             i.update_acceleration()
 
@@ -422,6 +422,9 @@ class Particle:
         Calls upon each child instance to plot itself, 
         as well as calling the Environment class for backdrop.
         ''' 
+        # Unpack wrapped ax object
+        ax = ax[0]
+
         # Print calculation progress
         print(f"----- Animation progress: {timestep} / {Particle.num_timesteps} -----" ,end="\r", flush=True)
 
@@ -430,7 +433,7 @@ class Particle:
         ax.set_xlim(0, Particle.walls_x_lim)  # Set x-axis limits
         ax.set_ylim(0, Particle.walls_y_lim)  # Set y-axis limits
         ax.set_aspect('equal', adjustable='box')
-        ax.set_title(f"Time step: {round((Particle.current_step))}, Time: {Particle.current_time}.")
+        ax.set_title(f"Time step: {Particle.current_step}, Time: {Particle.current_time}.")
 
         # Call upon Environment class to draw the frame's backdrop
         Environment.draw_backdrop(ax)
@@ -441,12 +444,12 @@ class Particle:
         # Decide if tracking the COM in each frame
         if Particle.track_com:
             com = Particle.centre_of_mass()
-            scene_scale = Particle.scene_scale
+            scene_scale = Particle.scene_scale()
         else:
             com, scene_scale = None, None
 
         # Iterate over child instances in system and plot
-        for instance in Particle.iterate_all_instances:
+        for instance in Particle.iterate_all_instances():
             instance.instance_plot(ax,com,scene_scale)
 
 class Prey(Particle):
