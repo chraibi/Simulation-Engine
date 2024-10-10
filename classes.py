@@ -273,13 +273,16 @@ class Particle:
             and torus modulo function on coordinates.
         '''
         for i in Particle.iterate_all_instances():
+            
             # Let particle update its acceleration 
             i.update_acceleration()
 
+            # Find last position from velocity - avoids torus wrapping problems
+            i.last_position = i.position - i.velocity*Particle.delta_t
+
             # Verlet Integration
             # Use tuple unpacking so we dont need a temp variable
-            i.position, i.last_position = (2*i.position - i.last_position + \
-                                            i.acceleration*(Particle.delta_t)**2), i.position
+            i.position, i.last_position = 2*i.position - i.last_position +i.acceleration*((Particle.delta_t)**2), i.position
             
             # Update velocity
             displacement = (i.position - i.last_position)
@@ -292,6 +295,7 @@ class Particle:
             # Enforce torus wrapping
             if Particle.torus:
                 i.torus_wrap()
+
         
         # Increment time
         Particle.current_time += Particle.delta_t
@@ -452,6 +456,32 @@ class Particle:
         for instance in Particle.iterate_all_instances():
             instance.instance_plot(ax,com,scene_scale)
 
+
+
+
+
+
+
+
+
+
+# ------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class Prey(Particle):
     '''
     Prey particle for flock of birds simulation.
@@ -461,8 +491,15 @@ class Prey(Particle):
 
     prey_dist_thresh = 10**2
     prey_repulsion_force = 5
-    com_attraction_force = 10
-    random_force = 2
+
+    pred_detect_thresh = 50**2
+    pred_repulsion_force = 40
+
+    pred_kill_thresh = 3**2
+
+    com_attraction_force = 20
+
+    random_force = 10
     
     # Initialisation
     def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
@@ -472,8 +509,26 @@ class Prey(Particle):
         super().__init__(position, velocity)
 
         # Prey specific attributes
-        self.mass = 5
-        self.max_speed = 10
+        self.mass = 4
+        self.max_speed = 5
+
+    # -------------------------------------------------------------------------
+    # Distance utilities
+
+    def find_closest_pred(self):
+        '''
+        Returns instance of nearest predator to prey (self).
+        '''
+        # Initialise shortest distance as really large number
+        # TODO: make this rely on actual span, not hardcoded
+        shortest_dist = (10**5)**2
+        closest_bird = None
+        for bird in Predator.iterate_class_instances():
+            dist = self.dist(bird) # squared dist
+            if dist < shortest_dist:
+                shortest_dist = dist
+                closest_bird = bird
+        return closest_bird
 
     # -------------------------------------------------------------------------
     # Main force model 
@@ -482,6 +537,12 @@ class Prey(Particle):
         '''
         Calculates main acceleration term from force-based model of environment.
         '''
+        # If predator near enough to kill prey instance, remove prey id and skip
+        closest_pred = self.find_closest_pred()
+        if self.dist(closest_pred) < self.prey_dist_thresh:
+            Prey.remove_by_id(self.id)
+            return 
+        
         # Instantiate force term
         force_term = np.zeros(2)
 
@@ -490,11 +551,19 @@ class Prey(Particle):
             if bird == self:
                 continue
             elif self.dist(bird) < Prey.prey_dist_thresh:
-                force_term += self.unit_dirn(bird)*(self.prey_repulsion_force/(np.sqrt(self.dist(bird))))
+                force_term += - self.unit_dirn(bird)*(self.prey_repulsion_force/(np.sqrt(self.dist(bird))))
             else:
                 continue
+
+        # Predator repulsion force
+        for bird in Predator.iterate_class_instances():
+            if self.dist(bird) < Prey.pred_detect_thresh:
+                force_term += - self.unit_dirn(bird)*(self.pred_repulsion_force/(np.sqrt(self.dist(bird))))
+            else:
+                continue
+
     
-        # Attraction to COM
+        # Attraction to COM of prey
         com = Prey.centre_of_mass_class()
         attract_dist = np.sum((com - self.position)**2)
         force_term += (com - self.position)*(self.com_attraction_force/(attract_dist))
@@ -576,6 +645,197 @@ class Prey(Particle):
         # Plot polygon
         ax.add_patch(polygon)
         
+
+
+
+
+# ------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+class Predator(Particle):
+    '''
+    Predator particle for flock of birds simulation.
+    '''
+    # -------------------------------------------------------------------------
+    # Attributes
+
+    prey_attraction_force = 30
+
+    pred_repulsion_force = 5
+    pred_dist_thresh = 2**2
+
+    pred_kill_thresh = 3**2
+
+    random_force = 1
+    
+    # Initialisation
+    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
+        '''
+        Initialises a Predator bird, inheriting from the Particle class.
+        '''
+        super().__init__(position, velocity)
+
+        # Prey specific attributes
+        self.mass = 10
+        self.max_speed = 6
+
+    # -------------------------------------------------------------------------
+    # Utilities
+
+    def find_closest_prey(self):
+        '''
+        Returns instance of nearest pray to predator (self).
+        '''
+        # Initialise shortest distance as really large number
+        # TODO: make this rely on actual span, not hardcoded
+        shortest_dist = (10**5)**2
+        closest_bird = None
+        for bird in Prey.iterate_class_instances():
+            dist = self.dist(bird) # squared dist
+            if dist < shortest_dist:
+                shortest_dist = dist
+                closest_bird = bird
+        return closest_bird
+
+        
+
+    # -------------------------------------------------------------------------
+    # Main force model 
+
+    def update_acceleration(self):
+        '''
+        Calculates main acceleration term from force-based model of environment.
+        '''
+
+        # If near enough to kill prey instance, set acc and vel to 0
+        closest_bird = self.find_closest_prey()
+        if self.dist(closest_bird) < self.pred_kill_thresh:
+            self.acceleration = np.zeros(2)
+            self.velocity = np.zeros(2)
+            return
+        
+        # Instantiate force term
+        force_term = np.zeros(2)
+
+        # Predator repulsion force - currently scales with 1/d
+        for bird in Predator.iterate_class_instances():
+            if bird == self:
+                continue
+            elif self.dist(bird) < Predator.pred_dist_thresh:
+                force_term += - self.unit_dirn(bird)*(self.pred_repulsion_force/(np.sqrt(self.dist(bird))))
+            else:
+                continue
+
+        # Attraction to closest prey
+        if closest_bird is None:
+            pass
+        else:
+            force_term += self.unit_dirn(closest_bird)*(self.prey_attraction_force)
+
+        # Random force - stochastic noise
+        # Generate between [0,1], map to [0,2] then shift to [-1,1]
+        force_term += ((np.random.rand(2)*2)-1)*self.random_force
+
+        # Update acceleration = Force / mass
+        self.acceleration = force_term / self.mass
+
+    
+    
+    # -------------------------------------------------------------------------
+    # CSV utilities
+
+    def write_csv_list(self):
+        '''
+        Format for compressing each Predator instance into CSV.
+        '''
+        # Individual child instance info
+        return [self.id, \
+                self.position[0], self.position[1], \
+                self.last_position[0],self.last_position[1],
+                self.velocity[0], self.velocity[1],
+                self.acceleration[0], self.acceleration[1] ]
+
+    def read_csv_list(self, system_state_list, idx_shift):
+        '''
+        Format for parsing the compressed Predator instances from CSV.
+        '''
+        self.id = system_state_list[idx_shift]
+        self.position = np.array([float(system_state_list[idx_shift+1]), \
+                                    float(system_state_list[idx_shift+2])])
+        self.last_position = np.array([float(system_state_list[idx_shift+3]), \
+                                    float(system_state_list[idx_shift+4])])
+        self.velocity = np.array([float(system_state_list[idx_shift+5]), \
+                                    float(system_state_list[idx_shift+6])])
+        self.acceleration = np.array([float(system_state_list[idx_shift+7]), \
+                                    float(system_state_list[idx_shift+8])])
+        # Update idx shift to next id and return
+        return idx_shift+9
+
+    # -------------------------------------------------------------------------
+    # Animation utilities
+
+    @staticmethod
+    def create_irregular_triangle(angle_rad):
+        '''
+        Create irregular triangle marker for plotting instances.
+        '''
+        # Define vertices for an irregular triangle (relative to origin)
+        triangle = np.array([[-0.5, -1], [0.5, -1], [0.0, 1]])*2
+        # Create a rotation matrix
+        rotation_matrix = np.array([[np.cos(angle_rad), -np.sin(angle_rad)],
+                                    [np.sin(angle_rad),  np.cos(angle_rad)]])
+        # Apply the rotation to the triangle vertices
+        return triangle @ rotation_matrix.T
+
+    def instance_plot(self, ax, com=None, scale=None):
+        ''' 
+        Plots individual Predator particle onto existing axis. 
+        '''
+
+        # Get plot position in frame
+        plot_position = self.position
+        if (com is not None) and (scale is not None):
+            plot_position = self.orient_to_com(com, scale)
+
+        # Get direction angle from velocity
+        theta = np.arctan2(self.velocity[1], self.velocity[0]) - np.pi/2
+
+        # Create a Polygon patch to represent the irregular triangle
+        triangle_shape = Prey.create_irregular_triangle(theta)
+        polygon = Polygon(triangle_shape, closed=True, facecolor='red', edgecolor='black')
+        
+        # Create and apply transformation of the polygon to the point
+        t = Affine2D().translate(plot_position[0], plot_position[1]) + ax.transData
+        polygon.set_transform(t)
+
+        # Plot polygon
+        ax.add_patch(polygon)
+
+
+
+
+
+
+
+
+
+
+
+
+# ------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
 
 
 
