@@ -285,26 +285,44 @@ class Particle:
     
     # -------------------------------------------------------------------------
     # CSV utilities
-    # TODO: Make some of these hidden!
 
-    # CSV path, to be set by main script
+    # CSV path, to be set by main script with datetime for reference
     csv_path = "my_csv.csv"
 
     @staticmethod
     def write_state_to_csv():
         '''
-        Takes current system state of all child instances at a particular timestep.
-        Composes a CSV row entry to encode this, calling each child class to write it's own instances.
-        Used to recursively record system's state for each timestamp in SSD.
+        Takes Particle system state at the current time, and compresses into CSV.
+        Iterates through each class, and within that each class instance.
+        Calls each class's own method to write its own section.
         '''
+        #--------------------------------
         # Compose CSV row entry
         system_state_list = [Particle.current_step, Particle.current_time]
+
+        # Iterate through all current child classes
         for classname in Particle.pop_counts_dict.keys():
-            # Access child class by string name using globals() dictionary
+
+            # Get class by string name
             my_class = globals()[classname]
-            # Call child class's list writer, add to general list
-            system_state_list += my_class.write_csv_list()
+
+            # Initialise class specific list
+            class_list = [classname, Particle.pop_counts_dict[classname]]
+
+            # Iterate through all instances
+            for child in my_class.iterate_class_instances():
+                # Add instance info to list using its write_csv_list function
+                class_list += child.write_csv_list()
+
+            # Add child class info to main list
+            class_list += ['|']
+            system_state_list += class_list
+
+        # End CSV row with 'END'
         system_state_list += ['END']
+
+        # ------------------------------------
+        # Writing entry to file
 
         # If CSV doesn't exist, make it with an initial header on row 0, then write state
         if not os.path.exists(Particle.csv_path):
@@ -322,37 +340,65 @@ class Particle:
     @staticmethod
     def load_state_from_csv(timestep):
         '''
-        Reads from a CSV of system states. Iterates through rows until it reaches right timestep.
-        Then calls on each child class to read it's entries when its name is mentioned, 
-        each time shifting a starting index.
+        Reads from a CSV containing the compressed Particle system state at a specific time.
+        Iterates through each class, and within that each class instance.
+        Parses to decompress the format outlined in write_state_to_csv.
         '''
+        # ------------------------------------
+        # Read row from CSV
 
-        # Open correct row in CSV
         with open(Particle.csv_path, mode='r', newline='') as file:
             # Loop through the CSV rows until reaching the desired row
-            # This must be done since CSV doesn't have indexed data structure
+            # (This must be done since CSV doesn't have indexed data structure)
             reader = csv.reader(file)
             target_row_index = timestep+1 
             for i, row in enumerate(reader):
                 if i == target_row_index:
                     system_state_list = row.copy()
-                    #current_step = [float(x) for x in current_step_strings] # Convert string -> float!
                     break
         
-        # Parse timestep info
+        # ------------------------------------
+        # Parse row into a full Particle system state
+
+        # Parse timestep info, shift index
         Particle.current_step, Particle.current_time = system_state_list[0], system_state_list[1]
         idx_shift = 2
+
+        # Loop through blocks for each child class
         while True:
+            # Check if reached the end of row
             if system_state_list[idx_shift] == 'END':
                 break
-            class_name = globals()[system_state_list[idx_shift]]
-            # Call child class's list reader, get new start point
-            # This reinstantiaties all instances under the hood
-            idx_shift = class_name.read_csv_list(system_state_list, idx_shift)
+
+            # Parse class and number of instances, shift index
+            my_class = globals()[system_state_list[idx_shift]]
+            class_pop = int(system_state_list[idx_shift+1])
+            idx_shift += 2
+
+            # Get rid of all existing instances of that class
+            max_id = Particle.max_ids_dict[my_class.__name__]
+            for id in range(max_id+1):
+                my_class.remove_by_id(id)
+            
+            # Loop through each instance in csv row
+            for i in range(class_pop):
+                # Create new child instance
+                child = my_class()
+
+                # Assign attributes by reading the system_state_list for that class
+                # This calls to child class's method to read each instance
+                idx_shift = child.read_csv_list(system_state_list, idx_shift)
+
+                # Add child to current 'all' list
+                Particle.all[my_class.__name__][child.id] = child
+                
+            # Check for pipe | at the end, then move past it
+            if system_state_list[idx_shift] != '|':
+                raise IndexError(f"Something wrong with parsing, ~ column {idx_shift}.")
+            idx_shift += 1
         
     # -------------------------------------------------------------------------
     # Animation utilities
-    # TODO: Make some of these hidden!
 
     @staticmethod
     def animate_timestep(timestep, ax):
@@ -393,13 +439,26 @@ class Prey(Particle):
     '''
     Prey particle for flock of birds simulation.
     '''
+    # -------------------------------------------------------------------------
+    # Attributes
     max_speed = 5
 
     mass = 7 
 
+    # Initialisation
     def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
+        '''
+        Initialises a Prey bird, inheriting from the Particle class.
+        '''
         super().__init__(position, velocity)
-        pass
+
+        # Prey specific attributes
+        self.mass = 5
+        self.max_speed = 10
+
+    
+    # -------------------------------------------------------------------------
+    # Main force model 
 
     def update_acceleration(self):
         # go through all in Particle.all[Prey] and Particle.all[Predator] to work out forces
@@ -411,71 +470,41 @@ class Prey(Particle):
     # -------------------------------------------------------------------------
     # CSV utilities
 
-    @classmethod
-    def write_csv_list(cls):
-        # Formats current set of class instances into a list, to be added to a CSV row
-        # by the main CSV function
-        # Prey, NumPrey, ID1, posx, posy, velx, vely, .. ID2, ...,  ,|,
-        # Converts this into NumPrey many instances to recover state from CSV
-        child_list = [cls.__name__, Particle.pop_counts_dict[cls.__name__]]
-        for child in cls.iterate_class_instances():
-            # Individual child instance
-            child_list += [child.id, \
-                           child.position[0], child.position[1], \
-                           child.last_position[0],child.last_position[1],
-                           child.velocity[0], child.velocity[1],
-                           child.acceleration[0], child.acceleration[1]
-                           ]
-        # End pipe for parsing
-        child_list += ['|']
-        return child_list
+    def write_csv_list(self):
+        '''
+        Format for compressing each Prey instance into CSV.
+        '''
+        # Individual child instance info
+        return [self.id, \
+                self.position[0], self.position[1], \
+                self.last_position[0],self.last_position[1],
+                self.velocity[0], self.velocity[1],
+                self.acceleration[0], self.acceleration[1] ]
 
-    @classmethod
-    def read_csv_list(cls, system_state_list: list, idx_shift: int):
-        # Given a list from main CSV reading function. This looks like:
-        # Prey, NumPrey, ID1, posx, posy, velx, vely, .. ID2, ...,  ,|,
-        # Converts this into NumPrey many instances to recover state from CSV
-
-        # First get rid of all existing instances
-        max_id = Particle.max_ids_dict[cls.__name__]
-        for id in range(max_id+1):
-            cls.remove_by_id(id)
-        
-        # Get number of children, then shift to start of parsing block
-        class_pop = int(system_state_list[idx_shift+1])
-        idx_shift += 2
-        # Loop through each child instance
-        for i in range(class_pop):
-            # Create new child instance, assign attributes
-            child = cls()
-            child.id = system_state_list[idx_shift]
-            child.position = np.array([float(system_state_list[idx_shift+1]), \
-                                       float(system_state_list[idx_shift+2])])
-            child.last_position = np.array([float(system_state_list[idx_shift+3]), \
-                                       float(system_state_list[idx_shift+4])])
-            child.velocity = np.array([float(system_state_list[idx_shift+5]), \
-                                       float(system_state_list[idx_shift+6])])
-            child.acceleration = np.array([float(system_state_list[idx_shift+7]), \
-                                       float(system_state_list[idx_shift+8])])
-            
-            # Add child to 'all' list
-            Particle.all[cls.__name__][child.id] = child
-            # Update idx shift to next child id
-            idx_shift += 9
-
-        # Check for correct parsing at the end
-        if system_state_list[idx_shift] != '|':
-            raise IndexError(f"Something wrong with parsing, ~ column {idx_shift}.")
-        
-        # Return shifted index, with all children now instantiated.
-        return idx_shift
+    def read_csv_list(self, system_state_list, idx_shift):
+        '''
+        Format for parsing the compressed Prey instances from CSV.
+        '''
+        self.id = system_state_list[idx_shift]
+        self.position = np.array([float(system_state_list[idx_shift+1]), \
+                                    float(system_state_list[idx_shift+2])])
+        self.last_position = np.array([float(system_state_list[idx_shift+3]), \
+                                    float(system_state_list[idx_shift+4])])
+        self.velocity = np.array([float(system_state_list[idx_shift+5]), \
+                                    float(system_state_list[idx_shift+6])])
+        self.acceleration = np.array([float(system_state_list[idx_shift+7]), \
+                                    float(system_state_list[idx_shift+8])])
+        # Update idx shift to next id and return
+        return idx_shift+9
 
     # -------------------------------------------------------------------------
     # Animation utilities
 
-    # Triangle creator for directed markers
     @staticmethod
     def create_irregular_triangle(angle_rad):
+        '''
+        Create irregular triangle marker for plotting instances.
+        '''
         # Define vertices for an irregular triangle (relative to origin)
         triangle = np.array([[-0.5, -1], [0.5, -1], [0.0, 1]])
         # Create a rotation matrix
@@ -485,7 +514,9 @@ class Prey(Particle):
         return triangle @ rotation_matrix.T
 
     def instance_plot(self, ax, com=None, scale=None):
-        ''' Plots individual Prey particle onto existing axis. '''
+        ''' 
+        Plots individual Prey particle onto existing axis. 
+        '''
 
         # Get plot position in frame
         plot_position = self.position
