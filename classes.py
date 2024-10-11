@@ -1,5 +1,10 @@
 # classes.py - generalising pedestrian.py
 
+# ===========================================================================
+#      NO LONGER IN USE - SEE simulation_classes MODULE FOLDER
+#      FILE KEPT FOR GitHub HISTORY
+# ===========================================================================
+
 import os
 import sys
 import csv
