@@ -2,27 +2,25 @@ import datetime
 import argparse
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-#from classes import *
 from simulation_classes import *
 
 import warnings
 warnings.filterwarnings("ignore")
 
 def main(args):
-     # Unpack arguments
-    
+     # Unpack user arguments
     type = args.type
     time_steps = args.steps
-    num1 = args.num1
+    num1 = args.num
     num2 = args.num2
     save_as_mp4 = args.save_mp4
     user_mp4_path = args.mp4_path
 
-    # --------------------------------------------------------------------------------------------------------
-    # Instantiate some particles
-
     now = datetime.datetime.now()
     show_graph = False # secondary axis
+
+    # --------------------------------------------------------------------------------------------------------
+    # Setup according to user-specified type
 
     if type == 'birds':
         Environment.background_type = "sky"
@@ -58,24 +56,28 @@ def main(args):
         Particle.walls_x_lim = 10
         Particle.walls_y_lim = 10
         classroom = True
+        first = False
         if classroom:
             Particle.walls_x_lim = 15
             Particle.walls_y_lim = 10
-            # Target
-            Target(np.array([Particle.walls_x_lim+1,2.5]))
+            
             # 3 walls with door
             Wall(np.array([0,0]),np.array([0,Particle.walls_y_lim]))
             Wall(np.array([0,0]),np.array([Particle.walls_x_lim, 0]))
             Wall(np.array([0,Particle.walls_y_lim]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
-            # Wall with door opening
-            Wall(np.array([Particle.walls_x_lim, 0]),np.array([Particle.walls_x_lim, 2]))
-            Wall(np.array([Particle.walls_x_lim, 3]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
+
             # Teacher desk
             Wall(np.array([Particle.walls_x_lim-1, 3]),np.array([Particle.walls_x_lim-1, 7]))
 
+            # Wall with door openings either side of desk
+            Wall(np.array([Particle.walls_x_lim, 0]),np.array([Particle.walls_x_lim, 2]))
+            Wall(np.array([Particle.walls_x_lim, 3]),np.array([Particle.walls_x_lim, 7]))
+            Wall(np.array([Particle.walls_x_lim, 8]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
+            # Targets for each door
+            Target(np.array([Particle.walls_x_lim+1,2.5]))
+            Target(np.array([Particle.walls_x_lim+1,7.5]))
 
-        first = False
-        if first:
+        elif first:
             Wall(np.array([0,0]),np.array([0,Particle.walls_y_lim]))
             Wall(np.array([0,0]),np.array([Particle.walls_x_lim, 0]))
             Wall(np.array([0,Particle.walls_y_lim]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
@@ -175,7 +177,7 @@ if __name__=="__main__":
     # Add arguments
     parser.add_argument('--type', type=str, help='The type of simulation [evac, birds, nbody]')
     parser.add_argument('--steps', type=int, help='The number of timesteps in the simulation [10 <= N <~ 500, default 100]', default=100)
-    parser.add_argument('--num1', type=int, help='The number of particles in the simulation [1<= N <~ 500, default 20]', default=20)
+    parser.add_argument('--num', type=int, help='The number of particles in the simulation [1<= N <~ 500, default 20]', default=20)
     parser.add_argument('--num2', type=int, help='The number of secondary particles in the simulation (eg Predators) [1<= N <~ 500, default 3]', default=3)
     parser.add_argument('--save_mp4', type=bool, help='Whether to save the simulation as an mp4 video [True, False, default True]', default=True)
     parser.add_argument('--mp4_path', type=str, help="(Optional) The mp4's relative path string (will create within current directory).", default=None)

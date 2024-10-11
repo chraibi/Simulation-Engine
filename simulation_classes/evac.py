@@ -1,6 +1,6 @@
 import numpy as np
 
-from .parents import Particle, Environment, Wall
+from .parents import Particle, Environment, Wall, Target
 
 class Human(Particle):
     '''
@@ -26,12 +26,13 @@ class Human(Particle):
         '''
         super().__init__(position, velocity)
 
-        # Prey specific attributes
+        # Human specific attributes
         self.mass = 60
         self.max_speed = 1.5
 
-        # Find closest exit target
-        # TODO: assign each human a target on initialisation, using shortest distance
+        # Imprint on nearest target
+        if Environment.targets is not []:
+            self.my_target = Target.find_closest_target(self)
 
     def create_instance(self):
         ''' Used to create instance of the same class as self, without referencing class. '''
@@ -52,14 +53,14 @@ class Human(Particle):
         force_term = np.zeros(2)
 
         # Go through targets and check distance to escape threshold
-        # If escape possible, unalive self. Otherwise sum target's force contribution
+        # If escape possible, unalive self. Otherwise sum my_target's force contribution
         if Environment.targets is not []:
             for target in Environment.targets:
                 dist, dirn = target.dist_to_target(self)
                 if dist**2 < target.capture_thresh:
                     self.unalive()
                     return 1
-                else:
+                elif target is self.my_target:
                     force_term += dirn * (self.target_attraction/(np.sqrt(dist)))
 
         # Human repulsion force - currently scales with 1/d^2
@@ -126,7 +127,7 @@ class Human(Particle):
         if (com is not None) and (scale is not None):
             plot_position = self.orient_to_com(com, scale)
         
-        ax.scatter(plot_position[0],plot_position[1],s=15**2,c='b')
+        ax.scatter(plot_position[0],plot_position[1],s=10**2,c='b')
 
         
 

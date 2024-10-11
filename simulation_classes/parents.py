@@ -21,6 +21,8 @@ class Particle:
     # Registry for child classes
     child_classes = {}
 
+    prototypes = {}
+
     # Track time and time step
     delta_t = 0.01
     current_time = 0
@@ -416,38 +418,47 @@ class Particle:
             
             # Parse class and number of instances, shift index
             classname = system_state_list[idx_shift]
-            #my_class = globals()[system_state_list[idx_shift]]
             class_pop = int(system_state_list[idx_shift+1])
             idx_shift += 2
 
-            # Check for no existing instances
+            #print(f"Timestep {timestep}, class_pop {class_pop}, classname {classname}")
+
+            # TODO: Note this structure is faulty - can't run if we start with 0 instances of a class
             if class_pop == 0:
+                # Remove all instances from current system
+                Particle.pop_counts_dict[classname] = 0
+                Particle.max_ids_dict[classname] = -1
+                Particle.all[classname] = {}
+            else:
+                # Search for existing instances
+                existing_id = None
+                for key, value in Particle.all[classname].items():
+                    existing_id = key
+                if existing_id is not None:
+                    # We have a valid instance, clone it into prototype for future use
+                    prototype = copy.copy(Particle.all[classname][existing_id])
+                    Particle.prototypes[classname] = prototype
+
+                # Cull everything and start again with prototype, rebuild with CSV info
+                Particle.pop_counts_dict[classname] = 0
+                Particle.max_ids_dict[classname] = -1
+                Particle.all[classname] = {}
+                prototype = Particle.prototypes[classname]
+
+                # Create class_pop many clones by looping through CSV row
+                for i in range(class_pop):
+                    # Clone our prototype with it's child class's create_instance method
+                    child = prototype.create_instance()
+
+                    # Assign attributes by reading the system_state_list for that class
+                    # This calls to child class's method to read each instance
+                    idx_shift = child.read_csv_list(system_state_list, idx_shift)
+                    
                 # Check for pipe | at the end, then move past it
                 if system_state_list[idx_shift] != '|':
                     raise IndexError(f"Something wrong with parsing, ~ column {idx_shift}.")
-                idx_shift += 1
-                continue
             
-            # Else get rid of all existing instances of that class
-            Particle.pop_counts_dict[classname] = 0
-            Particle.max_ids_dict[classname] = -1
-            test_subject = copy.copy(Particle.all[classname][0])
-            Particle.all[classname] = {}
-
-            # Loop through each instance in csv row
-            for i in range(class_pop):
-                # Create new child instance, calling test subjects' child class method
-                # ( create_instance allows us to create a child of the same type without
-                #   knowing the actual class in this file's namespace. )
-                child = test_subject.create_instance()
-
-                # Assign attributes by reading the system_state_list for that class
-                # This calls to child class's method to read each instance
-                idx_shift = child.read_csv_list(system_state_list, idx_shift)
-                
-            # Check for pipe | at the end, then move past it
-            if system_state_list[idx_shift] != '|':
-                raise IndexError(f"Something wrong with parsing, ~ column {idx_shift}.")
+            # Move on to next class by shifting over pipe character '|'
             idx_shift += 1
         
     # -------------------------------------------------------------------------
@@ -487,9 +498,20 @@ class Particle:
         else:
             com, scene_scale = None, None
 
-        # Iterate over child instances in system and plot
-        for instance in Particle.iterate_all_instances():
-            instance.instance_plot(ax,com,scene_scale)
+
+        # Check there are any existing particles
+        none_flag = True
+        for key, value in Particle.pop_counts_dict.items():
+            if value > 0:
+                none_flag = False
+                break
+        if none_flag:
+            # No objects exist, so don't try to plot them
+            pass
+        else:
+            # Iterate over child instances in system and plot
+            for instance in Particle.iterate_all_instances():
+                instance.instance_plot(ax,com,scene_scale)
 
         # Plot second graph
         if ax2 is not None:
@@ -654,3 +676,15 @@ class Target(Environment):
         vec = self.position - particle.position
         dist = np.linalg.norm(vec)
         return dist, vec/dist
+    
+    @staticmethod
+    def find_closest_target(particle: Particle):
+        closest_target = None
+        closest_dist = 10**5
+        for target in Environment.targets:
+            dist, _ = target.dist_to_target(particle)
+            if dist < closest_dist:
+                closest_dist = dist
+                closest_target = target
+        return closest_target
+
