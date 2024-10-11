@@ -42,9 +42,18 @@ def main():
 
     elif type == 'evac':
         Environment.background_type = "room"
-        num_people = 20
+        num_people = 40
+        Particle.num_evacuees = num_people
         Particle.walls_x_lim = 10
         Particle.walls_y_lim = 10
+        Wall(np.array([0,0]),np.array([0,Particle.walls_y_lim]))
+        Wall(np.array([0,0]),np.array([Particle.walls_x_lim, 0]))
+        Wall(np.array([0,Particle.walls_y_lim]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
+        Wall(np.array([Particle.walls_x_lim, 0]),np.array([Particle.walls_x_lim-1, 4.5]))
+        Wall(np.array([Particle.walls_x_lim-1, 5.5]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
+        Wall(np.array([3,5]),np.array([8, 5]))
+
+        show_graph = True
         for i in range(num_people):
             Human()
         Particle.track_com = False
@@ -82,15 +91,25 @@ def main():
     print("\n")
 
     # Initialise a scatter plot (need all of this)
-    fig, ax = plt.subplots(figsize=[7,7])
+    if show_graph:
+        fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 7))
+        scat = ax2.scatter([], [])
+    else:
+        fig, ax = plt.subplots(figsize=[7,7])
     fig.canvas.set_window_title(window_title)
-    ax.set_xlim(0, Particle.walls_x_lim)  # Set x-axis limits
-    ax.set_ylim(0, Particle.walls_y_lim)  # Set y-axis limits
+    ax.set_xlim(-1, Particle.walls_x_lim+1)  # Set x-axis limits
+    ax.set_ylim(-1, Particle.walls_y_lim+1)  # Set y-axis limits
     scat = ax.scatter([], [])
+    
+
 
     # Animate frames by calling update() function
     interval_between_frames = 100 # milliseconds
-    ani = FuncAnimation(fig, Particle.animate_timestep, frames=time_steps, \
+    if show_graph:
+        ani = FuncAnimation(fig, Particle.animate_timestep, frames=time_steps, \
+                        fargs=([ax],[ax2]), interval=interval_between_frames)
+    else:
+        ani = FuncAnimation(fig, Particle.animate_timestep, frames=time_steps, \
                         fargs=([ax],), interval=interval_between_frames)
 
     save_as_mp4 = True

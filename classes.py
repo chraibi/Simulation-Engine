@@ -19,6 +19,11 @@ class Particle:
     pop_counts_dict = {} 
     max_ids_dict = {}
 
+    # Dictionary for tracking kills for each timestep
+    kill_count = 0
+    kill_record = {0:0}
+    num_evacuees = 0 
+
     # Dictionary of all child classes, referenced by ID number
     # eg {bird: {0:instance0, 1:instance1, ...}, plane: {0: ...}, ... }
     # This is used to fully encode the system's state at each timestep.
@@ -119,6 +124,8 @@ class Particle:
         '''
         self.alive=0
         Particle.pop_counts_dict[self.__class__.__name__] -= 1
+        Particle.kill_count += 1
+        Particle.kill_record[Particle.current_step] = Particle.kill_count
 
     @classmethod
     def iterate_class_instances(cls):
@@ -314,6 +321,9 @@ class Particle:
         # Increment time
         Particle.current_time += Particle.delta_t
         Particle.current_step += 1
+
+        # Update kill records
+        Particle.kill_record[Particle.current_step] = Particle.kill_count
     
     # -------------------------------------------------------------------------
     # CSV utilities
@@ -432,7 +442,7 @@ class Particle:
     # Animation utilities
 
     @staticmethod
-    def animate_timestep(timestep, ax):
+    def animate_timestep(timestep, ax, ax2=None):
         '''
         Draws the state of the current system onto a matplotlib ax object provided.
         This function will be called by FuncAnimation at each timestep in the main simulation script.
@@ -441,14 +451,16 @@ class Particle:
         ''' 
         # Unpack wrapped ax object
         ax = ax[0]
-
+        if ax2 is not None:
+            ax2 = ax2[0]
+        
         # Print calculation progress
         print(f"----- Animation progress: {timestep} / {Particle.num_timesteps} -----" ,end="\r", flush=True)
 
         # Clear axis between frames, set axes limits again and title
         ax.clear()
-        ax.set_xlim(0, Particle.walls_x_lim)  # Set x-axis limits
-        ax.set_ylim(0, Particle.walls_y_lim)  # Set y-axis limits
+        ax.set_xlim(-1, Particle.walls_x_lim+1)  # Set x-axis limits
+        ax.set_ylim(-1, Particle.walls_y_lim+1)  # Set y-axis limits
         ax.set_aspect('equal', adjustable='box')
         ax.set_title(f"Time step: {Particle.current_step}, Time: {round(float(Particle.current_time),2)}.")
 
@@ -468,6 +480,22 @@ class Particle:
         # Iterate over child instances in system and plot
         for instance in Particle.iterate_all_instances():
             instance.instance_plot(ax,com,scene_scale)
+
+        # Plot second graph
+        ax2.clear()
+        ax2.set_xlim(0, Particle.num_timesteps)  # Set x-axis limits
+        ax2.set_ylim(0, Particle.num_evacuees)  # FIX THIS
+        ax2.set_title(f"Evacuated over time")
+        t_vals = []
+        y_vals = []
+        for key, item in Particle.kill_record.items():
+            if key <= timestep:
+                t_vals += [key]
+                y_vals += [item]
+        ax2.plot(t_vals, y_vals, c='b')
+        ax2.scatter(timestep,Particle.kill_record[timestep], marker='x', c='k')
+
+
 
 
 
@@ -1023,7 +1051,10 @@ class Human(Particle):
     personal_space = 1 # metres - 2 rulers between centres
     personal_space_repulsion = 100 # Newtons
 
-    target_attraction = 100
+    wall_dist_thresh = 0.5
+    wall_repulsion = 100
+
+    target_attraction = 1000
 
     random_force = 30
     
@@ -1036,7 +1067,7 @@ class Human(Particle):
 
         # Prey specific attributes
         self.mass = 60
-        self.max_speed = 1
+        self.max_speed = 1.5
 
         # Find closest exit target
         # TODO: assign each human a target on initialisation, using shortest distance
@@ -1072,6 +1103,12 @@ class Human(Particle):
             vec = Environment.target_position - self.position
             dirn = (vec)/np.linalg.norm(vec)
             force_term += dirn * self.target_attraction
+
+        # Repulsion from walls - scales with 1/d^2
+        for wall in Environment.walls:
+            dist, dirn = wall.dist_to_wall(self)
+            if dist < self.wall_dist_thresh:
+                force_term += dirn * (self.wall_repulsion/(dist**3))
 
         # Random force - stochastic noise
         # Generate between [0,1], map to [0,2] then shift to [-1,1]
@@ -1124,7 +1161,7 @@ class Human(Particle):
         if (com is not None) and (scale is not None):
             plot_position = self.orient_to_com(com, scale)
         
-        ax.scatter(plot_position[0],plot_position[1],s=20**2,c='b')
+        ax.scatter(plot_position[0],plot_position[1],s=15**2,c='b')
 
         
 
@@ -1163,8 +1200,8 @@ class Environment:
     walls = []
 
     # Targets (Make child class)
-    target_position = np.array([11,5])
-    target_dist_thresh = 1**2
+    target_position = np.array([10.5,5])
+    target_dist_thresh = 0.5**2
 
     # Background colour for each type of environment
     background_type = 'sky'
@@ -1180,7 +1217,7 @@ class Environment:
     def draw_objects(ax):
         for wall in Environment.walls:
             wall.instance_plot(ax)
-        pass
+        ax.scatter(Environment.target_position[0],Environment.target_position[1],s=20, c='g', marker='x')
 
     @staticmethod
     def draw_backdrop(ax):
@@ -1189,6 +1226,15 @@ class Environment:
          before drawing its particle objects over the top.
         An ax is passed in and we call different functions to draw environment elements
         '''
+        # Hide border and ticks if using evac 
+        if Environment.background_type == 'room':
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_visible(False)
+            ax.spines['bottom'].set_visible(False)
+            ax.xaxis.set_ticks([])
+            ax.yaxis.set_ticks([])
+
         Environment.draw_background_colour(ax)
         Environment.draw_objects(ax)
 
@@ -1205,10 +1251,14 @@ class Wall(Environment):
         self.wall_length = np.sqrt(np.sum((self.wall_vec)**2))
         Environment.walls += [self]
 
+    def __str__(self) -> str:
+        return f"Wall_[{self.a_position}]_[{self.b_position}]."
+
     def instance_plot(self, ax):
-        x_vals = np.array(self.a_position[0], self.b_position[0])
-        y_vals = np.array(self.a_position[1], self.b_position[1])
+        x_vals = np.array([self.a_position[0], self.b_position[0]])
+        y_vals = np.array([self.a_position[1], self.b_position[1]])
         ax.plot(x_vals, y_vals, c='k')
+        ax.scatter(x_vals,y_vals,s=20,c='r')
 
     def dist_to_wall(self, particle: Particle):
         '''
@@ -1221,19 +1271,48 @@ class Wall(Environment):
         b = self.b_position
         vec = self.wall_vec # b-a
         length = self.wall_length
+        '''
         # Check if not directly facing the wall by subtended angles
         # Nearest pole A
         ax = np.sqrt(np.sum((a-x)**2))
-        xab = np.arccos(np.dot((a-x),(vec))/length*ax)
+        dot_product_a = np.dot((a-x),(vec))/(length*ax)
+        dot_product_a = np.clip(dot_product_a, -1.0, 1.0)
+        tol = 1e-6
+        xab = np.arccos(dot_product_a)
         if xab < np.pi/2:
             return ax, (a-x)
         # Nearest pole B
         bx = np.sqrt(np.sum((b-x)**2))
-        xba = np.arccos(np.dot((b-x),(vec))/length*ax)
+        dot_product_b = np.dot((b-x),(vec))/(length*bx)
+        dot_product_b = np.clip(dot_product_b, -1.0, 1.0)
+        xba = np.arccos(dot_product_b)
         if xba > np.pi/2:
             return bx, (b-x)
-        # Facing wall
-        t = np.dot((x-a),vec)/(length*length)
+        '''
+        # Check distance to point A (pole A)
+        tolerance = 1e-2
+        ax = np.linalg.norm(a - x)
+        if ax < tolerance:
+            # Particle is effectively at pole A
+            return ax, (a - x)
+        
+        # Check distance to point B (pole B)
+        bx = np.linalg.norm(b - x)
+        if bx < tolerance:
+            # Particle is effectively at pole B
+            return bx, (b - x)
+        
+        # Projection of vector from A to particle onto the wall vector
+        t = np.dot((x - a), vec) / (length * length)
+
+        # If t < 0, the particle is closer to pole A
+        if t < 0:
+            return ax, -(a - x)
+        # If t > 1, the particle is closer to pole B
+        if t > 1:
+            return bx, -(b - x)
+        
+        # Else 0 <= t <= 1, and the particle is perpendicular to the wall
         x_to_wall = (a-x) + t*vec
         return np.sqrt(np.sum(x_to_wall**2)), -x_to_wall
     
