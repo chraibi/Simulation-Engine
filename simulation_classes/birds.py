@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from matplotlib.patches import Polygon
 from matplotlib.transforms import Affine2D
@@ -33,6 +34,10 @@ class Prey(Particle):
         # Prey specific attributes
         self.mass = 0.5
         self.max_speed = 20
+
+        # Ensure prototype for child class exists, callable by its name as a string only
+        prototype = copy.copy(self)
+        Particle.prototypes[self.__class__.__name__] = prototype
 
     def create_instance(self):
         ''' Used to create instance of the same class as self, without referencing class. '''
@@ -212,6 +217,10 @@ class Predator(Particle):
         # Prey specific attributes
         self.mass = 0.5
         self.max_speed = 30
+
+        # Ensure prototype for child class exists, callable by its name as a string only
+        prototype = copy.copy(self)
+        Particle.prototypes[self.__class__.__name__] = prototype
 
     def create_instance(self):
         ''' Used to create instance of the same class as self, without referencing class. '''

@@ -430,6 +430,7 @@ class Particle:
                 Particle.max_ids_dict[classname] = -1
                 Particle.all[classname] = {}
             else:
+                '''
                 # Search for existing instances
                 existing_id = None
                 for key, value in Particle.all[classname].items():
@@ -438,7 +439,7 @@ class Particle:
                     # We have a valid instance, clone it into prototype for future use
                     prototype = copy.copy(Particle.all[classname][existing_id])
                     Particle.prototypes[classname] = prototype
-
+                '''
                 # Cull everything and start again with prototype, rebuild with CSV info
                 Particle.pop_counts_dict[classname] = 0
                 Particle.max_ids_dict[classname] = -1
@@ -498,21 +499,10 @@ class Particle:
         else:
             com, scene_scale = None, None
 
-
-        # Check there are any existing particles
-        none_flag = True
-        for key, value in Particle.pop_counts_dict.items():
-            if value > 0:
-                none_flag = False
-                break
-        if none_flag:
-            # No objects exist, so don't try to plot them
-            pass
-        else:
-            # Iterate over child instances in system and plot
-            for instance in Particle.iterate_all_instances():
-                instance.instance_plot(ax,com,scene_scale)
-
+        # Iterate over child instances in system and plot
+        for instance in Particle.iterate_all_instances():
+            instance.instance_plot(ax,com,scene_scale)
+        
         # Plot second graph
         if ax2 is not None:
             ax2 = ax2[0]

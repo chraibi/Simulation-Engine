@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from scipy.stats import loguniform
 
@@ -32,6 +33,10 @@ class Star(Particle):
 
         # Random gray colour for plotting between 0.5 and 1
         self.colour = np.random.rand()/2 + 0.5
+
+        # Ensure prototype for child class exists, callable by its name as a string only
+        prototype = copy.copy(self)
+        Particle.prototypes[self.__class__.__name__] = prototype
 
     def create_instance(self):
         ''' Used to create instance of the same class as self, without referencing class. '''

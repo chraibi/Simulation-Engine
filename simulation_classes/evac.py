@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from .parents import Particle, Environment, Wall, Target
 
@@ -33,6 +34,10 @@ class Human(Particle):
         # Imprint on nearest target
         if Environment.targets is not []:
             self.my_target = Target.find_closest_target(self)
+
+        # Ensure prototype for child class exists, callable by its name as a string only
+        prototype = copy.copy(self)
+        Particle.prototypes[self.__class__.__name__] = prototype
 
     def create_instance(self):
         ''' Used to create instance of the same class as self, without referencing class. '''
