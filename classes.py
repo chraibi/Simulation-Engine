@@ -1036,7 +1036,7 @@ class Human(Particle):
 
         # Prey specific attributes
         self.mass = 60
-        self.max_speed = 2
+        self.max_speed = 1
 
         # Find closest exit target
         # TODO: assign each human a target on initialisation, using shortest distance
@@ -1124,7 +1124,7 @@ class Human(Particle):
         if (com is not None) and (scale is not None):
             plot_position = self.orient_to_com(com, scale)
         
-        ax.scatter(plot_position[0],plot_position[1],s=30,c='b')
+        ax.scatter(plot_position[0],plot_position[1],s=20**2,c='b')
 
         
 
@@ -1159,15 +1159,18 @@ class Environment:
     '''
     Class containing details about the simulation environment, walls etc
     '''
+    # Walls
+    walls = []
+
+    # Targets (Make child class)
+    target_position = np.array([11,5])
+    target_dist_thresh = 1**2
+
     # Background colour for each type of environment
     background_type = 'sky'
     background_colour_dict = {"sky": "skyblue",
                               "space": "k",
                               "room": "w"}
-    
-
-    target_position = np.array([105,50])
-    target_dist_thresh = 5**2
     
     @staticmethod
     def draw_background_colour(ax):
@@ -1175,6 +1178,8 @@ class Environment:
 
     @staticmethod
     def draw_objects(ax):
+        for wall in Environment.walls:
+            wall.instance_plot(ax)
         pass
 
     @staticmethod
@@ -1186,3 +1191,53 @@ class Environment:
         '''
         Environment.draw_background_colour(ax)
         Environment.draw_objects(ax)
+
+
+class Wall(Environment):
+    '''
+    Encodes instance of a wall
+    '''
+    def __init__(self, a_position, b_position) -> None:
+        super().__init__()
+        self.a_position = a_position
+        self.b_position = b_position
+        self.wall_vec = b_position - a_position
+        self.wall_length = np.sqrt(np.sum((self.wall_vec)**2))
+        Environment.walls += [self]
+
+    def instance_plot(self, ax):
+        x_vals = np.array(self.a_position[0], self.b_position[0])
+        y_vals = np.array(self.a_position[1], self.b_position[1])
+        ax.plot(x_vals, y_vals, c='k')
+
+    def dist_to_wall(self, particle: Particle):
+        '''
+        Function taking a wall and particle with position.
+        Returns the particle's closest distance to the wall, and the vector
+        pointing from wall to particle (direction of repulsion force).
+        '''
+        x = particle.position
+        a = self.a_position
+        b = self.b_position
+        vec = self.wall_vec # b-a
+        length = self.wall_length
+        # Check if not directly facing the wall by subtended angles
+        # Nearest pole A
+        ax = np.sqrt(np.sum((a-x)**2))
+        xab = np.arccos(np.dot((a-x),(vec))/length*ax)
+        if xab < np.pi/2:
+            return ax, (a-x)
+        # Nearest pole B
+        bx = np.sqrt(np.sum((b-x)**2))
+        xba = np.arccos(np.dot((b-x),(vec))/length*ax)
+        if xba > np.pi/2:
+            return bx, (b-x)
+        # Facing wall
+        t = np.dot((x-a),vec)/(length*length)
+        x_to_wall = (a-x) + t*vec
+        return np.sqrt(np.sum(x_to_wall**2)), -x_to_wall
+    
+        
+        
+
+

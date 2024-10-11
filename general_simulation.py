@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-    type = 'nbody'
+    type = 'evac'
     # --------------------------------------------------------------------------------------------------------
     # Instantiate some particles
 
@@ -42,8 +42,17 @@ def main():
 
     elif type == 'evac':
         Environment.background_type = "room"
+        num_people = 20
+        Particle.walls_x_lim = 10
+        Particle.walls_y_lim = 10
+        for i in range(num_people):
+            Human()
+        Particle.track_com = False
+        Particle.torus = False
+        csv_path = f"Simulation_CSVs/{type}_{str(num_people)}_{str(now.time())}_{str(now.date())}.csv"
+        mp4_path = f"Simulation_mp4s/{type}_{str(num_people)}_{str(now.time())}_{str(now.date())}.MP4"
+        window_title = f'Evacuation simulation, {num_people} people'
         
-
     # --------------------------------------------------------------------------------------------------------
     # Create CSV file name
 
