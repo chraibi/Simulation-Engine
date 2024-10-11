@@ -1,10 +1,12 @@
 # classes.py - generalising pedestrian.py
 
 import os
+import sys
 import csv
 import numpy as np
 from matplotlib.patches import Polygon
 from matplotlib.transforms import Affine2D
+from scipy.stats import loguniform
 
 class Particle:
     '''
@@ -44,8 +46,10 @@ class Particle:
         Start with random position, and zero velocity and zero acceleration.
         Set an ID value and then increment dictionaries
         '''
+        self.alive=1
         # ---------------
         # Motion
+        self.max_speed = None
 
         # If no starting position given, assign random within 2D wall limits
         if position is None:
@@ -95,20 +99,12 @@ class Particle:
     def get_count(cls):
         ''' Return a class type count. eg  num_birds = Bird.get_count(). '''
         return Particle.pop_counts_dict.get(cls.__name__, 0)
+    
     @classmethod
     def get_max_id(cls):
         ''' Return a class max id. eg max_id_birds = Bird.get_max_id(). '''
         return Particle.max_ids_dict.get(cls.__name__, 0)
     
-    @classmethod
-    def remove_by_id(cls, id):
-        ''' Remove class instance from list of instances by its id. '''
-        if id in Particle.all[cls.__name__]:
-            del Particle.all[cls.__name__][id]
-            Particle.pop_counts_dict[cls.__name__] -= 1
-        else:
-            pass
-
     @classmethod
     def get_instance_by_id(cls, id):
         ''' Get class instance by its id. If id doesn't exist, throw a KeyError.'''
@@ -117,6 +113,13 @@ class Particle:
         else:
             raise KeyError(f"Instance with id {id} not found in {cls.__name__}.")
         
+    def unalive(self):
+        ''' 
+        Sets the class instance with this id to be not alive, decrements the class count.
+        '''
+        self.alive=0
+        Particle.pop_counts_dict[self.__class__.__name__] -= 1
+
     @classmethod
     def iterate_class_instances(cls):
         ''' Iterate over all instances of a given class by id. '''
@@ -124,26 +127,34 @@ class Particle:
         # It unpacks each {id: instance} dictionary item within our Particle.all[classname] dictionary
         # It then 'yields' the instance. Can be used in a for loop as iterator.
         for id, instance in Particle.all.get(cls.__name__, {}).items():
-            yield instance
+            if instance.alive == 1:
+                yield instance
 
     @staticmethod
     def iterate_all_instances():
         ''' Iterate over all existing child instances. '''
-        # Create dictionary with all child instances
+        # Create big flattened dictionary with all child instances
         dict_list = {}
         for i in Particle.all.values():
             dict_list.update(i)
         # Create generator through the dictionary values (instances)
         for id, instance in dict_list.items():
-            yield instance
+            if instance.alive == 1:
+                yield instance
         
     def __str__(self) -> str:
         ''' Print statement for particles. '''
-        return f"Particle {self.id} at position {self.position} with velocity {self.velocity}."
+        if self.alive==1:
+            return f"Particle {self.id} at position {self.position} with velocity {self.velocity}."
+        else:
+            return f"Dead Particle {self.id} at position {self.position} with velocity {self.velocity}."
 
     def __repr__(self) -> str:
         ''' Debug statement for particles. '''
-        return f"{self.__class__.__name__}({self.id},{self.position},{self.velocity})"
+        if self.alive==1:
+            return f"{self.__class__.__name__}({self.id},{self.position},{self.velocity})"
+        else:
+            return f"dead_{self.__class__.__name__}({self.id},{self.position},{self.velocity})"
 
     # -------------------------------------------------------------------------
     # Distance utilities
@@ -275,7 +286,10 @@ class Particle:
         for i in Particle.iterate_all_instances():
             
             # Let particle update its acceleration 
-            i.update_acceleration()
+            flag = i.update_acceleration()
+            if flag==1:
+                # i has been killed
+                continue
 
             # Find last position from velocity - avoids torus wrapping problems
             i.last_position = i.position - i.velocity*Particle.delta_t
@@ -394,10 +408,12 @@ class Particle:
             idx_shift += 2
 
             # Get rid of all existing instances of that class
-            max_id = Particle.max_ids_dict[my_class.__name__]
-            for id in range(max_id+1):
-                my_class.remove_by_id(id)
-            
+            #for id, instance in Particle.all.get(my_class.__name__, {}).items():
+            #    instance.unalive()
+            Particle.pop_counts_dict[my_class.__name__] = 0
+            Particle.max_ids_dict[my_class.__name__] = -1
+            Particle.all[my_class.__name__] = {}
+
             # Loop through each instance in csv row
             for i in range(class_pop):
                 # Create new child instance
@@ -406,9 +422,6 @@ class Particle:
                 # Assign attributes by reading the system_state_list for that class
                 # This calls to child class's method to read each instance
                 idx_shift = child.read_csv_list(system_state_list, idx_shift)
-
-                # Add child to current 'all' list
-                Particle.all[my_class.__name__][child.id] = child
                 
             # Check for pipe | at the end, then move past it
             if system_state_list[idx_shift] != '|':
@@ -437,7 +450,7 @@ class Particle:
         ax.set_xlim(0, Particle.walls_x_lim)  # Set x-axis limits
         ax.set_ylim(0, Particle.walls_y_lim)  # Set y-axis limits
         ax.set_aspect('equal', adjustable='box')
-        ax.set_title(f"Time step: {Particle.current_step}, Time: {Particle.current_time}.")
+        ax.set_title(f"Time step: {Particle.current_step}, Time: {round(float(Particle.current_time),2)}.")
 
         # Call upon Environment class to draw the frame's backdrop
         Environment.draw_backdrop(ax)
@@ -489,17 +502,17 @@ class Prey(Particle):
     # -------------------------------------------------------------------------
     # Attributes
 
-    prey_dist_thresh = 10**2
-    prey_repulsion_force = 5
+    prey_dist_thresh = 5**2
+    prey_repulsion_force = 50
 
     pred_detect_thresh = 50**2
-    pred_repulsion_force = 40
+    pred_repulsion_force = 150
 
-    pred_kill_thresh = 3**2
+    pred_kill_thresh = 1**2
 
-    com_attraction_force = 20
+    com_attraction_force = 150
 
-    random_force = 10
+    random_force = 30
     
     # Initialisation
     def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
@@ -509,8 +522,8 @@ class Prey(Particle):
         super().__init__(position, velocity)
 
         # Prey specific attributes
-        self.mass = 4
-        self.max_speed = 5
+        self.mass = 0.5
+        self.max_speed = 20
 
     # -------------------------------------------------------------------------
     # Distance utilities
@@ -537,11 +550,13 @@ class Prey(Particle):
         '''
         Calculates main acceleration term from force-based model of environment.
         '''
-        # If predator near enough to kill prey instance, remove prey id and skip
+        # If predator near enough to kill prey instance, unalive prey and skip
         closest_pred = self.find_closest_pred()
-        if self.dist(closest_pred) < self.prey_dist_thresh:
-            Prey.remove_by_id(self.id)
-            return 
+        if closest_pred is not None:
+            if self.dist(closest_pred) < self.pred_kill_thresh:
+                self.unalive()
+                # print(Particle.all)
+                return 1
         
         # Instantiate force term
         force_term = np.zeros(2)
@@ -574,6 +589,8 @@ class Prey(Particle):
 
         # Update acceleration = Force / mass
         self.acceleration = force_term / self.mass
+
+        return 0
     
     # -------------------------------------------------------------------------
     # CSV utilities
@@ -661,14 +678,16 @@ class Predator(Particle):
     # -------------------------------------------------------------------------
     # Attributes
 
-    prey_attraction_force = 30
+    prediction = True
 
-    pred_repulsion_force = 5
-    pred_dist_thresh = 2**2
+    prey_attraction_force = 100
 
-    pred_kill_thresh = 3**2
+    pred_repulsion_force = 200
+    pred_dist_thresh = 10**2
 
-    random_force = 1
+    pred_kill_thresh = 1**2
+
+    random_force = 5
     
     # Initialisation
     def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
@@ -678,8 +697,8 @@ class Predator(Particle):
         super().__init__(position, velocity)
 
         # Prey specific attributes
-        self.mass = 10
-        self.max_speed = 6
+        self.mass = 0.5
+        self.max_speed = 30
 
     # -------------------------------------------------------------------------
     # Utilities
@@ -711,10 +730,12 @@ class Predator(Particle):
 
         # If near enough to kill prey instance, set acc and vel to 0
         closest_bird = self.find_closest_prey()
-        if self.dist(closest_bird) < self.pred_kill_thresh:
-            self.acceleration = np.zeros(2)
-            self.velocity = np.zeros(2)
-            return
+        if closest_bird is not None:
+            if self.dist(closest_bird) < self.pred_kill_thresh:
+                closest_bird.unalive()
+                self.acceleration = np.zeros(2)
+                self.velocity *= 0.1
+                return 0
         
         # Instantiate force term
         force_term = np.zeros(2)
@@ -732,7 +753,17 @@ class Predator(Particle):
         if closest_bird is None:
             pass
         else:
-            force_term += self.unit_dirn(closest_bird)*(self.prey_attraction_force)
+            if Predator.prediction:
+                target_position = closest_bird.position.copy()
+                target_velocity = closest_bird.velocity
+                # Temporarily change closest bird's position
+                closest_bird.position = target_position + 5*Particle.delta_t*target_velocity
+                # Increment force
+                force_term += self.unit_dirn(closest_bird)*(self.prey_attraction_force)
+                # Change closest's bird position back
+                closest_bird.position = target_position
+            else:
+                force_term += self.unit_dirn(closest_bird)*(self.prey_attraction_force)
 
         # Random force - stochastic noise
         # Generate between [0,1], map to [0,2] then shift to [-1,1]
@@ -740,6 +771,8 @@ class Predator(Particle):
 
         # Update acceleration = Force / mass
         self.acceleration = force_term / self.mass
+
+        return 0
 
     
     
@@ -782,7 +815,7 @@ class Predator(Particle):
         Create irregular triangle marker for plotting instances.
         '''
         # Define vertices for an irregular triangle (relative to origin)
-        triangle = np.array([[-0.5, -1], [0.5, -1], [0.0, 1]])*2
+        triangle = np.array([[-0.5, -1], [0.5, -1], [0.0, 1]])*10
         # Create a rotation matrix
         rotation_matrix = np.array([[np.cos(angle_rad), -np.sin(angle_rad)],
                                     [np.sin(angle_rad),  np.cos(angle_rad)]])
@@ -807,6 +840,7 @@ class Predator(Particle):
         polygon = Polygon(triangle_shape, closed=True, facecolor='red', edgecolor='black')
         
         # Create and apply transformation of the polygon to the point
+        t = Affine2D().scale(20)
         t = Affine2D().translate(plot_position[0], plot_position[1]) + ax.transData
         polygon.set_transform(t)
 
@@ -817,6 +851,282 @@ class Predator(Particle):
 
 
 
+
+class Star(Particle):
+    '''
+    Star particle for N-body simulation
+    '''
+    # -------------------------------------------------------------------------
+    # Attributes
+
+    G = 1000
+    min_mass = 10 
+    max_mass = 10**3
+
+    random_force = 0
+    
+    # Initialisation
+    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
+        '''
+        Initialises a star object, inheriting from the Particle class.
+        '''
+        super().__init__(position, velocity)
+
+        # Get mass from a log uniform distribution betwen min and max mass supplied
+        self.mass = loguniform.rvs(Star.min_mass, Star.max_mass, size=1)[0]
+        # Get velocity from 1/mass * 10 * random direction
+        self.velocity = 10*np.array([np.random.rand(1)[0]*2 - 1,np.random.rand(1)[0]*2 - 1])
+
+        # Random gray colour for plotting between 0.5 and 1
+        self.colour = np.random.rand()/2 + 0.5
+
+    # -------------------------------------------------------------------------
+    # Main force model
+    
+    def update_acceleration(self):
+        '''
+        Calculates main acceleration term from force-based model of environment.
+        '''
+        # Instantiate force term
+        force_term = np.zeros(2)
+
+        # Sum gravitational attractions
+        for star in Star.iterate_class_instances():
+            if star == self:
+                continue
+            # Gm1m2/(r^2) in direction towards other planet - note dist returns r^2
+            force_term  += (Star.G*star.mass*self.mass) * self.unit_dirn(star)/(self.dist(star))
+        
+        # Random force - stochastic noise
+        # Generate between [0,1], map to [0,2] then shift to [-1,1]
+        force_term += ((np.random.rand(2)*2)-1)*self.random_force
+
+        # Update acceleration = Force / mass
+        self.acceleration = force_term / self.mass
+
+        return 0
+
+    # -------------------------------------------------------------------------
+    # CSV utilities
+
+    def write_csv_list(self):
+        '''
+        Format for compressing each Star instance into CSV.
+        '''
+        # Individual child instance info
+        return [self.id, self.mass, self.colour, \
+                self.position[0], self.position[1], \
+                self.last_position[0],self.last_position[1],
+                self.velocity[0], self.velocity[1],
+                self.acceleration[0], self.acceleration[1] ]
+
+    def read_csv_list(self, system_state_list, idx_shift):
+        '''
+        Format for parsing the compressed Star instances from CSV.
+        '''
+        self.id = system_state_list[idx_shift]
+        self.mass = float(system_state_list[idx_shift+1])
+        self.colour = float(system_state_list[idx_shift+2])
+        self.position = np.array([float(system_state_list[idx_shift+3]), \
+                                    float(system_state_list[idx_shift+4])])
+        self.last_position = np.array([float(system_state_list[idx_shift+5]), \
+                                    float(system_state_list[idx_shift+6])])
+        self.velocity = np.array([float(system_state_list[idx_shift+7]), \
+                                    float(system_state_list[idx_shift+8])])
+        self.acceleration = np.array([float(system_state_list[idx_shift+9]), \
+                                    float(system_state_list[idx_shift+10])])
+        # Update idx shift to next id and return
+        return idx_shift+11
+    
+     # -------------------------------------------------------------------------
+    # Animation utilities
+
+    def instance_plot(self, ax, com=None, scale=None):
+        ''' 
+        Plots individual Star particle onto existing axis. 
+        '''
+
+        # Get plot position in frame
+        plot_position = self.position
+        #size = 2*(2*np.log10(self.mass)+1)**3
+        size = 5 + 10 * (np.power(2,np.log10(self.mass))-1)
+        if (com is not None) and (scale is not None):
+            plot_position = self.orient_to_com(com, scale)
+            #size *= 1/np.sqrt(scale)
+        #ax.scatter(plot_position[0], plot_position[1],marker='o',c=[self.colour], cmap='gray')
+        
+        ax.scatter(plot_position[0],plot_position[1],s=size,c=[self.colour], cmap='gray',vmin=0,vmax=1 )
+
+    # -------------------------------------------------------------------------
+    # CSV utilities
+
+    def write_csv_list(self):
+        '''
+        Format for compressing each Star instance into CSV.
+        '''
+        # Individual child instance info
+        return [self.id, self.mass, self.colour, \
+                self.position[0], self.position[1], \
+                self.last_position[0],self.last_position[1],
+                self.velocity[0], self.velocity[1],
+                self.acceleration[0], self.acceleration[1] ]
+
+    def read_csv_list(self, system_state_list, idx_shift):
+        '''
+        Format for parsing the compressed Star instances from CSV.
+        '''
+        self.id = system_state_list[idx_shift]
+        self.mass = float(system_state_list[idx_shift+1])
+        self.colour = float(system_state_list[idx_shift+2])
+        self.position = np.array([float(system_state_list[idx_shift+3]), \
+                                    float(system_state_list[idx_shift+4])])
+        self.last_position = np.array([float(system_state_list[idx_shift+5]), \
+                                    float(system_state_list[idx_shift+6])])
+        self.velocity = np.array([float(system_state_list[idx_shift+7]), \
+                                    float(system_state_list[idx_shift+8])])
+        self.acceleration = np.array([float(system_state_list[idx_shift+9]), \
+                                    float(system_state_list[idx_shift+10])])
+        # Update idx shift to next id and return
+        return idx_shift+11
+    
+     # -------------------------------------------------------------------------
+    # Animation utilities
+
+    def instance_plot(self, ax, com=None, scale=None):
+        ''' 
+        Plots individual Star particle onto existing axis. 
+        '''
+
+        # Get plot position in frame
+        plot_position = self.position
+        #size = 2*(2*np.log10(self.mass)+1)**3
+        size = 5 + 10 * (np.power(2,np.log10(self.mass))-1)
+        if (com is not None) and (scale is not None):
+            plot_position = self.orient_to_com(com, scale)
+            #size *= 1/np.sqrt(scale)
+        #ax.scatter(plot_position[0], plot_position[1],marker='o',c=[self.colour], cmap='gray')
+        
+        ax.scatter(plot_position[0],plot_position[1],s=size,c=[self.colour], cmap='gray',vmin=0,vmax=1 )
+
+
+# ------------------------------------------------------------------------------------------------------------------------
+
+
+
+class Human(Particle):
+    '''
+    Human particle for crowd simulation.
+    '''
+    # -------------------------------------------------------------------------
+    # Attributes
+
+    personal_space = 1 # metres - 2 rulers between centres
+    personal_space_repulsion = 100 # Newtons
+
+    target_attraction = 100
+
+    random_force = 30
+    
+    # Initialisation
+    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
+        '''
+        Initialises a Human, inheriting from the Particle class.
+        '''
+        super().__init__(position, velocity)
+
+        # Prey specific attributes
+        self.mass = 60
+        self.max_speed = 2
+
+        # Find closest exit target
+        # TODO: assign each human a target on initialisation, using shortest distance
+
+    # -------------------------------------------------------------------------
+    # Distance utilities
+
+    # -------------------------------------------------------------------------
+    # Main force model 
+
+    def update_acceleration(self):
+        '''
+        Calculates main acceleration term from force-based model of environment.
+        '''
+        if Environment.target_position is not None:
+            dist = np.sum((Environment.target_position - self.position)**2)
+            if dist < Environment.target_dist_thresh:
+                self.unalive()
+                return 1
+        
+        # Instantiate force term
+        force_term = np.zeros(2)
+
+        # Human repulsion force - currently scales with 1/d^2
+        for human in Human.iterate_class_instances():
+            if human == self:
+                continue
+            elif self.dist(human) < self.personal_space:
+                force_term += - self.unit_dirn(human)*(self.personal_space_repulsion/(np.sqrt(self.dist(human))))
+
+        # Attraction to target
+        if Environment.target_position is not None:
+            vec = Environment.target_position - self.position
+            dirn = (vec)/np.linalg.norm(vec)
+            force_term += dirn * self.target_attraction
+
+        # Random force - stochastic noise
+        # Generate between [0,1], map to [0,2] then shift to [-1,1]
+        force_term += ((np.random.rand(2)*2)-1)*self.random_force
+
+        # Update acceleration = Force / mass
+        self.acceleration = force_term / self.mass
+
+        return 0
+    
+    # -------------------------------------------------------------------------
+    # CSV utilities
+
+    def write_csv_list(self):
+        '''
+        Format for compressing each Human instance into CSV.
+        '''
+        # Individual child instance info
+        return [self.id, \
+                self.position[0], self.position[1], \
+                self.last_position[0],self.last_position[1],
+                self.velocity[0], self.velocity[1],
+                self.acceleration[0], self.acceleration[1] ]
+
+    def read_csv_list(self, system_state_list, idx_shift):
+        '''
+        Format for parsing the compressed Human instances from CSV.
+        '''
+        self.id = system_state_list[idx_shift]
+        self.position = np.array([float(system_state_list[idx_shift+1]), \
+                                    float(system_state_list[idx_shift+2])])
+        self.last_position = np.array([float(system_state_list[idx_shift+3]), \
+                                    float(system_state_list[idx_shift+4])])
+        self.velocity = np.array([float(system_state_list[idx_shift+5]), \
+                                    float(system_state_list[idx_shift+6])])
+        self.acceleration = np.array([float(system_state_list[idx_shift+7]), \
+                                    float(system_state_list[idx_shift+8])])
+        # Update idx shift to next id and return
+        return idx_shift+9
+
+    # -------------------------------------------------------------------------
+    # Animation utilities
+
+    def instance_plot(self, ax, com=None, scale=None):
+        ''' 
+        Plots individual Prey particle onto existing axis. 
+        '''
+        # Get plot position in frame
+        plot_position = self.position
+        if (com is not None) and (scale is not None):
+            plot_position = self.orient_to_com(com, scale)
+        
+        ax.scatter(plot_position[0],plot_position[1],s=30,c='b')
+
+        
 
 
 
@@ -854,6 +1164,10 @@ class Environment:
     background_colour_dict = {"sky": "skyblue",
                               "space": "k",
                               "room": "w"}
+    
+
+    target_position = np.array([105,50])
+    target_dist_thresh = 5**2
     
     @staticmethod
     def draw_background_colour(ax):

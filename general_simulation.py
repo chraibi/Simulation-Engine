@@ -7,35 +7,55 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
+    type = 'nbody'
     # --------------------------------------------------------------------------------------------------------
     # Instantiate some particles
 
-    num_prey = 50
-    num_pred = 3
-    particle_instances = []
-    for i in range(num_prey):
-        instance = Prey()
-        particle_instances.append(instance)
-    for i in range(num_pred):
-        instance = Predator()
-        particle_instances.append(instance)
+    now = datetime.datetime.now()
+
+    if type == 'birds':
+        Environment.background_type = "sky"
+        num_prey = 50
+        num_pred = 5
+        for i in range(num_prey):
+            Prey()
+        for i in range(num_pred):
+            Predator()
+        Particle.track_com = False
+        Particle.torus = True
+        csv_path = f"Simulation_CSVs/{type}_{str(num_prey)}_{str(num_pred)}_{str(now.time())}_{str(now.date())}.csv"
+        mp4_path = f"Simulation_mp4s/{type}_{str(num_prey)}_{str(num_pred)}_{str(now.time())}_{str(now.date())}.MP4"
+        window_title = f'Predator Prey animation, {num_prey} prey, {num_pred} predators'
+
+    elif type == 'nbody':
+        Environment.background_type = "space"
+        Particle.walls_x_lim = 1000
+        Particle.walls_y_lim = 1000
+        num_bodies = 50
+        for i in range(num_bodies):
+            Star()
+        Particle.track_com = True
+        Particle.torus = False
+        csv_path = f"Simulation_CSVs/{type}_{str(num_bodies)}_{str(now.time())}_{str(now.date())}.csv"
+        mp4_path = f"Simulation_mp4s/{type}_{str(num_bodies)}_{str(now.time())}_{str(now.date())}.MP4"
+        window_title = f'N-body animation, {num_bodies} bodies'
+
+    elif type == 'evac':
+        Environment.background_type = "room"
+        
 
     # --------------------------------------------------------------------------------------------------------
     # Create CSV file name
 
-    now = datetime.datetime.now()
-    csv_path = "Simulation_CSVs/pred_prey_"+str(num_prey)+"_"+str(num_pred)+"_"+str(now.time())+"_"+str(now.date())+".csv"
     csv_path = csv_path.replace(":","-") # makes file more readable
     Particle.csv_path = csv_path
 
     # --------------------------------------------------------------------------------------------------------
     # Loop through timesteps
-    time_steps = 200
+    time_steps = 100
     Particle.num_timesteps = time_steps
-    Particle.delta_t = 0.5
-    Particle.track_com = False
-    Particle.torus = True
-
+    Particle.delta_t = 0.1
+    
     for t in range(time_steps):
         # Print calculation progress
         print(f"----- Computation progress: {t} / {time_steps} -----" ,end="\r", flush=True)
@@ -54,7 +74,7 @@ def main():
 
     # Initialise a scatter plot (need all of this)
     fig, ax = plt.subplots(figsize=[7,7])
-    fig.canvas.set_window_title(f'Predator Prey animation, {num_prey} prey, {num_pred} predators')
+    fig.canvas.set_window_title(window_title)
     ax.set_xlim(0, Particle.walls_x_lim)  # Set x-axis limits
     ax.set_ylim(0, Particle.walls_y_lim)  # Set y-axis limits
     scat = ax.scatter([], [])
@@ -66,7 +86,6 @@ def main():
 
     save_as_mp4 = True
     if save_as_mp4:
-        mp4_path = "Simulation_mp4s/pred_prey_"+str(num_prey)+"_"+str(num_pred)+"_"+str(now.time())+"_"+str(now.date())+".MP4"
         mp4_path = mp4_path.replace(":","-")
         fps = 1/(interval_between_frames*(10**(-3))) # period -> frequency
         ani.save(mp4_path, writer='ffmpeg', fps=fps)
