@@ -14,9 +14,9 @@ class Human(Particle):
     personal_space_repulsion = 100 # Newtons
 
     wall_dist_thresh = 0.5
-    wall_repulsion = 100
+    wall_repulsion = 300
 
-    target_attraction = 1000
+    target_attraction = 500
 
     random_force = 30
     
@@ -46,6 +46,19 @@ class Human(Particle):
     # -------------------------------------------------------------------------
     # Distance utilities
 
+    def wall_deflection(self, wall_dist, wall_dirn):
+        target_dist, target_dirn = self.my_target.dist_to_target(self)
+        angle = np.arccos(np.dot(-wall_dirn,target_dirn)/(wall_dist*target_dist))
+        if angle>(-np.pi/2) and angle<0:
+            force_dirn = np.matmul(np.array([[0,-1],[1,0]]),wall_dirn)/wall_dist
+            return force_dirn * np.cos(angle)**2 * self.wall_repulsion
+        elif angle>= 0 and angle<np.pi/2:
+            force_dirn = np.matmul(np.array([[0,1],[-1,0]]),wall_dirn)/wall_dist
+            return force_dirn * np.cos(angle)**2 * self.wall_repulsion
+        else:
+            return np.zeros(2)
+
+
     # -------------------------------------------------------------------------
     # Main force model 
 
@@ -53,6 +66,9 @@ class Human(Particle):
         '''
         Calculates main acceleration term from force-based model of environment.
         '''
+        # Reconsider target every 20 timesteps
+        if Particle.current_step % 10 == 0:
+            self.my_target = Target.find_closest_target(self)
 
         # Instantiate force term
         force_term = np.zeros(2)
@@ -66,7 +82,7 @@ class Human(Particle):
                     self.unalive()
                     return 1
                 elif target is self.my_target:
-                    force_term += dirn * (self.target_attraction/(np.sqrt(dist)))
+                    force_term += self.target_attraction * (dirn/dist)
 
         # Human repulsion force - currently scales with 1/d^2
         for human in Human.iterate_class_instances():
@@ -74,12 +90,15 @@ class Human(Particle):
                 continue
             elif self.dist(human) < self.personal_space:
                 force_term += - self.unit_dirn(human)*(self.personal_space_repulsion/(np.sqrt(self.dist(human))))
+                pass
 
         # Repulsion from walls - scales with 1/d^2
         for wall in Environment.walls:
             dist, dirn = wall.dist_to_wall(self)
             if dist < self.wall_dist_thresh:
                 force_term += dirn * (self.wall_repulsion/(dist**3))
+                # Make Humans smart - repel sideways if vector to target is directly blocked by wall
+                force_term += 5*self.wall_deflection(dist, dirn)
 
         # Random force - stochastic noise
         # Generate between [0,1], map to [0,2] then shift to [-1,1]

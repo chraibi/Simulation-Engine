@@ -60,19 +60,26 @@ def main(args):
         if classroom:
             Particle.walls_x_lim = 15
             Particle.walls_y_lim = 10
+            x = Particle.walls_x_lim
+            y = Particle.walls_y_lim
+
+            wall_points = [[[0,0],[0,y]], # left wall
+                           [[0,0],[x,0]], # bottom wall
+                           [[0,y],[x,y]], # top wall
+                           [[x-2,3],[x-2,7]], # big desk
+                           [[x,0],[x,2]], # right wall bottom 
+                           [[x,3],[x,7]], # right wall middle
+                           [[x,8],[x,y]], # right wall top
+                           [[3,2],[3,4]],
+                           [[3,6],[3,8]],
+                           [[6,2],[6,4]],
+                           [[6,6],[6,8]],
+                           [[9,2],[9,4]],
+                           [[9,6],[9,8]]]
             
-            # 3 walls with door
-            Wall(np.array([0,0]),np.array([0,Particle.walls_y_lim]))
-            Wall(np.array([0,0]),np.array([Particle.walls_x_lim, 0]))
-            Wall(np.array([0,Particle.walls_y_lim]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
+            for pair in wall_points:
+                Wall(np.array(pair[0]), np.array(pair[1]))
 
-            # Teacher desk
-            Wall(np.array([Particle.walls_x_lim-1, 3]),np.array([Particle.walls_x_lim-1, 7]))
-
-            # Wall with door openings either side of desk
-            Wall(np.array([Particle.walls_x_lim, 0]),np.array([Particle.walls_x_lim, 2]))
-            Wall(np.array([Particle.walls_x_lim, 3]),np.array([Particle.walls_x_lim, 7]))
-            Wall(np.array([Particle.walls_x_lim, 8]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
             # Targets for each door
             Target(np.array([Particle.walls_x_lim+1,2.5]))
             Target(np.array([Particle.walls_x_lim+1,7.5]))

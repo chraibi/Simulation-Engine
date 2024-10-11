@@ -665,7 +665,7 @@ class Target(Environment):
     def dist_to_target(self, particle: Particle):
         vec = self.position - particle.position
         dist = np.linalg.norm(vec)
-        return dist, vec/dist
+        return dist, vec
     
     @staticmethod
     def find_closest_target(particle: Particle):
