@@ -1,5 +1,6 @@
 import os
 import csv
+import copy
 import numpy as np
 
 class Particle:
@@ -9,19 +10,16 @@ class Particle:
     # -------------------------------------------------------------------------
     # Attributes
 
-    #  Dictionaries for population count and maximum ID number of each child class
+    # Class attributes for managing population and state
     pop_counts_dict = {} 
     max_ids_dict = {}
-
+    all = {}
     # Dictionary for tracking kills for each timestep
     kill_count = 0
     kill_record = {0:0}
     num_evacuees = 0 
-
-    # Dictionary of all child classes, referenced by ID number
-    # eg {bird: {0:instance0, 1:instance1, ...}, plane: {0: ...}, ... }
-    # This is used to fully encode the system's state at each timestep.
-    all = {}
+    # Registry for child classes
+    child_classes = {}
 
     # Track time and time step
     delta_t = 0.01
@@ -67,28 +65,30 @@ class Particle:
         # Initialise acceleration as attribute
         self.acceleration = np.zeros(2)
 
-        # --------------
-        # Indexing
+        # Indexing for this instance
+        self._initialize_instance()
+
+    def _initialize_instance(self):
+        """Initialize instance-specific attributes."""
 
         # Get Child class name of current instance
         class_name = self.__class__.__name__
         
         # Population count
-        if class_name not in Particle.pop_counts_dict:
-            Particle.pop_counts_dict[class_name] = 0
-        Particle.pop_counts_dict[class_name] += 1
+        Particle.pop_counts_dict[class_name] = Particle.pop_counts_dict.get(class_name, 0) + 1
 
         # ID - index starts at 0
-        if class_name not in Particle.max_ids_dict:
-            Particle.max_ids_dict[class_name] = 0
-        else:
-            Particle.max_ids_dict[class_name] += 1
-        self.id = Particle.max_ids_dict[class_name]
+        self.id = Particle.max_ids_dict.get(class_name, -1) + 1
+        Particle.max_ids_dict[class_name] = self.id
 
         # Add instance to 'all' dict
         if class_name not in Particle.all:
             Particle.all[class_name] = {}
         Particle.all[class_name][self.id] = self
+
+        # Register the class if it's not already in the registry
+        if class_name not in Particle.child_classes:
+            Particle.child_classes[class_name] = self.__class__
 
     # -------------------------------------------------------------------------
     # Instance management utilities
@@ -127,13 +127,18 @@ class Particle:
         # This function is a 'generator' object in Python due to the use of 'yield'.
         # It unpacks each {id: instance} dictionary item within our Particle.all[classname] dictionary
         # It then 'yields' the instance. Can be used in a for loop as iterator.
-        for id, instance in Particle.all.get(cls.__name__, {}).items():
+        for instance in Particle.all.get(cls.__name__, {}).values():
             if instance.alive == 1:
                 yield instance
 
     @staticmethod
     def iterate_all_instances():
         ''' Iterate over all existing child instances. '''
+        for class_instances in Particle.all.values():
+            for instance in class_instances.values():
+                if instance.alive == 1:
+                    yield instance
+        '''
         # Create big flattened dictionary with all child instances
         dict_list = {}
         for i in Particle.all.values():
@@ -142,6 +147,7 @@ class Particle:
         for id, instance in dict_list.items():
             if instance.alive == 1:
                 yield instance
+        '''
         
     def __str__(self) -> str:
         ''' Print statement for particles. '''
@@ -333,22 +339,26 @@ class Particle:
         Calls each class's own method to write its own section.
         '''
         #--------------------------------
+        if not Particle.csv_path.endswith('.csv'):
+            Particle.csv_path += '.csv'
+
         # Compose CSV row entry
         system_state_list = [Particle.current_step, Particle.current_time]
 
         # Iterate through all current child classes
         for classname in Particle.pop_counts_dict.keys():
 
-            # Get class by string name
-            my_class = globals()[classname]
+            # Access the class directly from the all_instances dictionary
+            class_instances = Particle.all.get(classname, {})
 
             # Initialise class specific list
             class_list = [classname, Particle.pop_counts_dict[classname]]
 
-            # Iterate through all instances
-            for child in my_class.iterate_class_instances():
-                # Add instance info to list using its write_csv_list function
-                class_list += child.write_csv_list()
+            # Iterate through all instances of the child class
+            for child in class_instances.values():
+                if child.alive == 1:
+                    # Add instance info to list using its write_csv_list function
+                    class_list += child.write_csv_list()
 
             # Add child class info to main list
             class_list += ['|']
@@ -360,14 +370,12 @@ class Particle:
         # ------------------------------------
         # Writing entry to file
 
-        # If CSV doesn't exist, make it with an initial header on row 0, then write state
         if not os.path.exists(Particle.csv_path):
             with open(Particle.csv_path, mode='w', newline='') as file:
                 writer = csv.writer(file)
                 header_row = ['Timestep', 'Time', 'ClassName', 'ClassPop', 'InstanceID', 'Attributes', '...','|','ClassName','...','|','END']
                 writer.writerow(header_row)
                 writer.writerow(system_state_list)
-        # Else open in append mode and write
         else:
             with open(Particle.csv_path, mode='a', newline='') as file:
                 writer = csv.writer(file)
@@ -405,23 +413,33 @@ class Particle:
             # Check if reached the end of row
             if system_state_list[idx_shift] == 'END':
                 break
-
+            
             # Parse class and number of instances, shift index
-            my_class = globals()[system_state_list[idx_shift]]
+            classname = system_state_list[idx_shift]
+            #my_class = globals()[system_state_list[idx_shift]]
             class_pop = int(system_state_list[idx_shift+1])
             idx_shift += 2
 
-            # Get rid of all existing instances of that class
-            #for id, instance in Particle.all.get(my_class.__name__, {}).items():
-            #    instance.unalive()
-            Particle.pop_counts_dict[my_class.__name__] = 0
-            Particle.max_ids_dict[my_class.__name__] = -1
-            Particle.all[my_class.__name__] = {}
+            # Check for no existing instances
+            if class_pop == 0:
+                # Check for pipe | at the end, then move past it
+                if system_state_list[idx_shift] != '|':
+                    raise IndexError(f"Something wrong with parsing, ~ column {idx_shift}.")
+                idx_shift += 1
+                continue
+            
+            # Else get rid of all existing instances of that class
+            Particle.pop_counts_dict[classname] = 0
+            Particle.max_ids_dict[classname] = -1
+            test_subject = copy.copy(Particle.all[classname][0])
+            Particle.all[classname] = {}
 
             # Loop through each instance in csv row
             for i in range(class_pop):
-                # Create new child instance
-                child = my_class()
+                # Create new child instance, calling test subjects' child class method
+                # ( create_instance allows us to create a child of the same type without
+                #   knowing the actual class in this file's namespace. )
+                child = test_subject.create_instance()
 
                 # Assign attributes by reading the system_state_list for that class
                 # This calls to child class's method to read each instance
@@ -445,8 +463,6 @@ class Particle:
         ''' 
         # Unpack wrapped ax object
         ax = ax[0]
-        if ax2 is not None:
-            ax2 = ax2[0]
         
         # Print calculation progress
         print(f"----- Animation progress: {timestep} / {Particle.num_timesteps} -----" ,end="\r", flush=True)
@@ -476,18 +492,20 @@ class Particle:
             instance.instance_plot(ax,com,scene_scale)
 
         # Plot second graph
-        ax2.clear()
-        ax2.set_xlim(0, Particle.num_timesteps)  # Set x-axis limits
-        ax2.set_ylim(0, Particle.num_evacuees)  # FIX THIS
-        ax2.set_title(f"Evacuated over time")
-        t_vals = []
-        y_vals = []
-        for key, item in Particle.kill_record.items():
-            if key <= timestep:
-                t_vals += [key]
-                y_vals += [item]
-        ax2.plot(t_vals, y_vals, c='b')
-        ax2.scatter(timestep,Particle.kill_record[timestep], marker='x', c='k')
+        if ax2 is not None:
+            ax2 = ax2[0]
+            ax2.clear()
+            ax2.set_xlim(0, Particle.num_timesteps)  # Set x-axis limits
+            ax2.set_ylim(0, Particle.num_evacuees) 
+            ax2.set_title(f"Evacuated over time")
+            t_vals = []
+            y_vals = []
+            for key, item in Particle.kill_record.items():
+                if key <= timestep:
+                    t_vals += [key]
+                    y_vals += [item]
+            ax2.plot(t_vals, y_vals, c='b')
+            ax2.scatter(timestep,Particle.kill_record[timestep], marker='x', c='k')
 
 
 
@@ -514,12 +532,9 @@ class Environment:
     '''
     Class containing details about the simulation environment, walls etc
     '''
-    # Walls
+    # Instances
     walls = []
-
-    # Targets (Make child class)
-    target_position = np.array([10.5,5])
-    target_dist_thresh = 0.5**2
+    targets = []
 
     # Background colour for each type of environment
     background_type = 'sky'
@@ -535,7 +550,8 @@ class Environment:
     def draw_objects(ax):
         for wall in Environment.walls:
             wall.instance_plot(ax)
-        ax.scatter(Environment.target_position[0],Environment.target_position[1],s=20, c='g', marker='x')
+        for target in Environment.targets:
+            target.instance_plot(ax)
 
     @staticmethod
     def draw_backdrop(ax):
@@ -589,24 +605,7 @@ class Wall(Environment):
         b = self.b_position
         vec = self.wall_vec # b-a
         length = self.wall_length
-        '''
-        # Check if not directly facing the wall by subtended angles
-        # Nearest pole A
-        ax = np.sqrt(np.sum((a-x)**2))
-        dot_product_a = np.dot((a-x),(vec))/(length*ax)
-        dot_product_a = np.clip(dot_product_a, -1.0, 1.0)
-        tol = 1e-6
-        xab = np.arccos(dot_product_a)
-        if xab < np.pi/2:
-            return ax, (a-x)
-        # Nearest pole B
-        bx = np.sqrt(np.sum((b-x)**2))
-        dot_product_b = np.dot((b-x),(vec))/(length*bx)
-        dot_product_b = np.clip(dot_product_b, -1.0, 1.0)
-        xba = np.arccos(dot_product_b)
-        if xba > np.pi/2:
-            return bx, (b-x)
-        '''
+        
         # Check distance to point A (pole A)
         tolerance = 1e-2
         ax = np.linalg.norm(a - x)
@@ -633,3 +632,25 @@ class Wall(Environment):
         # Else 0 <= t <= 1, and the particle is perpendicular to the wall
         x_to_wall = (a-x) + t*vec
         return np.sqrt(np.sum(x_to_wall**2)), -x_to_wall
+    
+
+class Target(Environment):
+    '''
+    Encodes instance of a target
+    '''
+    def __init__(self, position) -> None:
+        super().__init__()
+        self.position = position
+        self.capture_thresh = 0.5**2
+        Environment.targets += [self]
+
+    def __str__(self) -> str:
+        return f"Target_[{self.position}]_[{self.capture_thresh}]]."
+
+    def instance_plot(self, ax):
+        ax.scatter(self.position[0],self.position[1],s=20, c='g', marker='x')
+    
+    def dist_to_target(self, particle: Particle):
+        vec = self.position - particle.position
+        dist = np.linalg.norm(vec)
+        return dist, vec/dist

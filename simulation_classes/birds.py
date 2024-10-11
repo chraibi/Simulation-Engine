@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib.patches import Polygon
 from matplotlib.transforms import Affine2D
 
-from parents import Particle, Environment
+from .parents import Particle, Environment
 
 class Prey(Particle):
     '''
@@ -33,6 +33,10 @@ class Prey(Particle):
         # Prey specific attributes
         self.mass = 0.5
         self.max_speed = 20
+
+    def create_instance(self):
+        ''' Used to create instance of the same class as self, without referencing class. '''
+        return Prey()
 
     # -------------------------------------------------------------------------
     # Distance utilities
@@ -208,6 +212,10 @@ class Predator(Particle):
         # Prey specific attributes
         self.mass = 0.5
         self.max_speed = 30
+
+    def create_instance(self):
+        ''' Used to create instance of the same class as self, without referencing class. '''
+        return Predator()
 
     # -------------------------------------------------------------------------
     # Utilities

@@ -1,6 +1,6 @@
 import numpy as np
 
-from parents import Particle, Environment, Wall
+from .parents import Particle, Environment, Wall
 
 class Human(Particle):
     '''
@@ -33,6 +33,10 @@ class Human(Particle):
         # Find closest exit target
         # TODO: assign each human a target on initialisation, using shortest distance
 
+    def create_instance(self):
+        ''' Used to create instance of the same class as self, without referencing class. '''
+        return Human()
+
     # -------------------------------------------------------------------------
     # Distance utilities
 
@@ -43,14 +47,20 @@ class Human(Particle):
         '''
         Calculates main acceleration term from force-based model of environment.
         '''
-        if Environment.target_position is not None:
-            dist = np.sum((Environment.target_position - self.position)**2)
-            if dist < Environment.target_dist_thresh:
-                self.unalive()
-                return 1
-        
+
         # Instantiate force term
         force_term = np.zeros(2)
+
+        # Go through targets and check distance to escape threshold
+        # If escape possible, unalive self. Otherwise sum target's force contribution
+        if Environment.targets is not []:
+            for target in Environment.targets:
+                dist, dirn = target.dist_to_target(self)
+                if dist**2 < target.capture_thresh:
+                    self.unalive()
+                    return 1
+                else:
+                    force_term += dirn * (self.target_attraction/(np.sqrt(dist)))
 
         # Human repulsion force - currently scales with 1/d^2
         for human in Human.iterate_class_instances():
@@ -58,12 +68,6 @@ class Human(Particle):
                 continue
             elif self.dist(human) < self.personal_space:
                 force_term += - self.unit_dirn(human)*(self.personal_space_repulsion/(np.sqrt(self.dist(human))))
-
-        # Attraction to target
-        if Environment.target_position is not None:
-            vec = Environment.target_position - self.position
-            dirn = (vec)/np.linalg.norm(vec)
-            force_term += dirn * self.target_attraction
 
         # Repulsion from walls - scales with 1/d^2
         for wall in Environment.walls:

@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import loguniform
 
-from parents import Particle
+from .parents import Particle
 
 
 
@@ -32,6 +32,10 @@ class Star(Particle):
 
         # Random gray colour for plotting between 0.5 and 1
         self.colour = np.random.rand()/2 + 0.5
+
+    def create_instance(self):
+        ''' Used to create instance of the same class as self, without referencing class. '''
+        return Star()
 
     # -------------------------------------------------------------------------
     # Main force model
