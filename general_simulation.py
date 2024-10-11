@@ -46,12 +46,28 @@ def main():
         Particle.num_evacuees = num_people
         Particle.walls_x_lim = 10
         Particle.walls_y_lim = 10
-        Wall(np.array([0,0]),np.array([0,Particle.walls_y_lim]))
-        Wall(np.array([0,0]),np.array([Particle.walls_x_lim, 0]))
-        Wall(np.array([0,Particle.walls_y_lim]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
-        Wall(np.array([Particle.walls_x_lim, 0]),np.array([Particle.walls_x_lim-1, 4.5]))
-        Wall(np.array([Particle.walls_x_lim-1, 5.5]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
-        Wall(np.array([3,5]),np.array([8, 5]))
+        classroom = True
+        if classroom:
+            Particle.walls_x_lim = 10
+            Particle.walls_y_lim = 10
+            # 3 walls with door
+            Wall(np.array([0,0]),np.array([0,Particle.walls_y_lim]))
+            Wall(np.array([0,0]),np.array([Particle.walls_x_lim, 0]))
+            Wall(np.array([0,Particle.walls_y_lim]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
+            # Wall with door opening
+            Wall(np.array([Particle.walls_x_lim, 0]),np.array([Particle.walls_x_lim, 2]))
+            Wall(np.array([Particle.walls_x_lim, 3]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
+            Environment.target_position = np.array([Particle.walls_x_lim+1, 2.5])
+
+
+        first = False
+        if first:
+            Wall(np.array([0,0]),np.array([0,Particle.walls_y_lim]))
+            Wall(np.array([0,0]),np.array([Particle.walls_x_lim, 0]))
+            Wall(np.array([0,Particle.walls_y_lim]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
+            Wall(np.array([Particle.walls_x_lim, 0]),np.array([Particle.walls_x_lim-1, 4.5]))
+            Wall(np.array([Particle.walls_x_lim-1, 5.5]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
+            Wall(np.array([3,5]),np.array([8, 5]))
 
         show_graph = True
         for i in range(num_people):

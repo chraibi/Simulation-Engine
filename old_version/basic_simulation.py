@@ -8,7 +8,7 @@ from matplotlib.patches import Polygon
 from matplotlib.transforms import Affine2D
 
 # From pedestrian.py file
-from pedestrian import Person
+from old_version.pedestrian import Person
 
 # HIDE WARNINGS
 import warnings

@@ -28,6 +28,7 @@ Aims:
 
 Extensions:
 -----
+- Seperate into module structure with clear imports
 - main() system input to determine model type and parameters.
 - Cloth simulation using perturbed SHM oscillator model for each particle in lattice
 - Evac sim fire instances
