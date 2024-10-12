@@ -1,13 +1,36 @@
 # Crowd-Simulation
-Python learning project Oct 2024
+Python project Oct 2024 \
+Author: Ben Winstanley
 
-![demo-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo.gif)
+----
+
+
+``` from simulation_classes import * ```
+``` python general_simulation.py --type birds --num 50 --num2 5 --steps 200```
+
+![birds-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif)
+
+--- 
+``` python general_simulation.py --type nbody --num 30 --steps 100 ```
+
+![nbody-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif)
+
+---
+``` python general_simulation.py --type evac --num 40 --steps 200 ```
+
+![evac-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/evac_demo.gif)
+
+---
+
+
+
 
 Files:
 ---
 
 - classes.py : contains main Particle class, with Prey, Predator, Star, Human child classes, and Environment class with Wall child class.
-- general_simulation.py : calls objects from classes.py, wraps up in simple time-stepping script in main(). 
+- simulation_classes : module folder containing seperated files with each of these classes
+- general_simulation.py : calls objects from classes.py, wraps up in simple time-stepping script in main(). Run with commands specified above.
 - pedestrian.py : contains Person class with force-based model methods
 - basic_simulation.py : script that simulates the dynamics given the force based model from pedestrian.py
     - Run with terminal command: \
@@ -28,8 +51,6 @@ Aims:
 
 Extensions:
 -----
-- Seperate into module structure with clear imports
-- main() system input to determine model type and parameters.
 - Cloth simulation using perturbed SHM oscillator model for each particle in lattice
 - Evac sim fire instances
 - Evac sim where we fuse force model with a neural network to work out velocity. Reinforcement learning with PyTorch to train:
