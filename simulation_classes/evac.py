@@ -11,14 +11,14 @@ class Human(Particle):
     # Attributes
 
     personal_space = 1 # metres - 2 rulers between centres
-    personal_space_repulsion = 100 # Newtons
+    personal_space_repulsion = 300 # Newtons
 
     wall_dist_thresh = 0.5
-    wall_repulsion = 300
+    wall_repulsion = 200
 
-    target_attraction = 500
+    target_attraction = 1500
 
-    random_force = 30
+    random_force = 10
     
     # Initialisation
     def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
@@ -29,7 +29,7 @@ class Human(Particle):
 
         # Human specific attributes
         self.mass = 60
-        self.max_speed = 1.5
+        self.max_speed = 1.8
 
         # Imprint on nearest target
         if Environment.targets is not []:
@@ -49,12 +49,13 @@ class Human(Particle):
     def wall_deflection(self, wall_dist, wall_dirn):
         target_dist, target_dirn = self.my_target.dist_to_target(self)
         angle = np.arccos(np.dot(-wall_dirn,target_dirn)/(wall_dist*target_dist))
-        if angle>(-np.pi/2) and angle<0:
+        tolerance = 1e-6
+        if angle > (-np.pi / 2 + tolerance) and angle < 0:
             force_dirn = np.matmul(np.array([[0,-1],[1,0]]),wall_dirn)/wall_dist
-            return force_dirn * np.cos(angle)**2 * self.wall_repulsion
+            return force_dirn * self.wall_repulsion # * np.cos(0.25*angle)
         elif angle>= 0 and angle<np.pi/2:
             force_dirn = np.matmul(np.array([[0,1],[-1,0]]),wall_dirn)/wall_dist
-            return force_dirn * np.cos(angle)**2 * self.wall_repulsion
+            return force_dirn * self.wall_repulsion # * np.cos(0.25*angle)
         else:
             return np.zeros(2)
 
@@ -82,7 +83,7 @@ class Human(Particle):
                     self.unalive()
                     return 1
                 elif target is self.my_target:
-                    force_term += self.target_attraction * (dirn/dist)
+                    force_term += self.target_attraction * (dirn/dist**2)
 
         # Human repulsion force - currently scales with 1/d^2
         for human in Human.iterate_class_instances():
@@ -96,9 +97,10 @@ class Human(Particle):
         for wall in Environment.walls:
             dist, dirn = wall.dist_to_wall(self)
             if dist < self.wall_dist_thresh:
-                force_term += dirn * (self.wall_repulsion/(dist**3))
+                force_term += dirn * (self.wall_repulsion/(dist**2))
                 # Make Humans smart - repel sideways if vector to target is directly blocked by wall
-                force_term += 5*self.wall_deflection(dist, dirn)
+                if dist < 0.5 * self.wall_dist_thresh:
+                    force_term += 3*self.wall_deflection(dist, dirn)
 
         # Random force - stochastic noise
         # Generate between [0,1], map to [0,2] then shift to [-1,1]
@@ -151,7 +153,7 @@ class Human(Particle):
         if (com is not None) and (scale is not None):
             plot_position = self.orient_to_com(com, scale)
         
-        ax.scatter(plot_position[0],plot_position[1],s=10**2,c='b')
+        ax.scatter(plot_position[0],plot_position[1],s=12**2,c='b')
 
         
 

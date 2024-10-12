@@ -52,7 +52,7 @@ class Particle:
 
         # If no starting position given, assign random within 2D wall limits
         if position is None:
-            self.position = np.array([np.random.rand(1)[0]*self.walls_x_lim,np.random.rand(1)[0]*self.walls_y_lim])
+            self.position = np.array([np.random.rand(1)[0]*(self.walls_x_lim),np.random.rand(1)[0]*self.walls_y_lim])
         # If no starting velocity given, set it to zero.
         if velocity is None:
             self.velocity = np.zeros(2)
@@ -270,12 +270,12 @@ class Particle:
                 else:
                     pass
         return max_dist
-    
+     
     def orient_to_com(self, com, scale):
         ''' Affine translation on point coordinates to prepare for plotting.  '''
         centre = np.array([0.5*Particle.walls_x_lim, 0.5*Particle.walls_y_lim])
         term = np.min(centre)
-        return centre + (self.position - com) * (term/scale)
+        return centre + (self.position - com) *term/scale #* 1/scale
 
     # -------------------------------------------------------------------------
     # Main timestep function
@@ -481,10 +481,15 @@ class Particle:
 
         # Clear axis between frames, set axes limits again and title
         ax.clear()
-        ax.set_xlim(-1, Particle.walls_x_lim+1)  # Set x-axis limits
+        ax.set_xlim(-1, Particle.walls_x_lim+1.5)  # Set x-axis limits
         ax.set_ylim(-1, Particle.walls_y_lim+1)  # Set y-axis limits
         ax.set_aspect('equal', adjustable='box')
-        ax.set_title(f"Time step: {Particle.current_step}, Time: {round(float(Particle.current_time),2)}.")
+        seconds = float(Particle.current_time) % 60
+        minutes = int(float(Particle.current_time) - seconds)
+        if minutes<1:
+            ax.set_title(f"Time: {round(seconds)}s (Step {Particle.current_step})")
+        else:
+            ax.set_title(f"Time: {minutes} mins, {round(seconds,1)}s (Step {Particle.current_step})")
 
         # Call upon Environment class to draw the frame's backdrop
         Environment.draw_backdrop(ax)
@@ -507,17 +512,21 @@ class Particle:
         if ax2 is not None:
             ax2 = ax2[0]
             ax2.clear()
-            ax2.set_xlim(0, Particle.num_timesteps)  # Set x-axis limits
+            max_time = int(Particle.num_timesteps)*Particle.delta_t
+            ax2.set_xlim(0, max_time)  # Set x-axis limits
             ax2.set_ylim(0, Particle.num_evacuees) 
-            ax2.set_title(f"Evacuated over time")
+            xticks = [i for i in range(int(max_time)) if i % 5 == 0] + [max_time]  # Positions where you want the labels
+            ax2.set_xticks(xticks)  # Set ticks at every value in the range
+            ax2.set_xlabel("Time (s)")
+            ax2.set_title(f"Number evacuated over time")
             t_vals = []
             y_vals = []
             for key, item in Particle.kill_record.items():
                 if key <= timestep:
-                    t_vals += [key]
+                    t_vals += [int(key)*Particle.delta_t]
                     y_vals += [item]
             ax2.plot(t_vals, y_vals, c='b')
-            ax2.scatter(timestep,Particle.kill_record[timestep], marker='x', c='k')
+            ax2.scatter(int(timestep)*Particle.delta_t,Particle.kill_record[timestep], marker='x', c='r')
 
 
 
@@ -573,13 +582,14 @@ class Environment:
         An ax is passed in and we call different functions to draw environment elements
         '''
         # Hide border and ticks if using evac 
-        if Environment.background_type == 'room':
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['left'].set_visible(False)
-            ax.spines['bottom'].set_visible(False)
-            ax.xaxis.set_ticks([])
-            ax.yaxis.set_ticks([])
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.xaxis.set_ticks([])
+        ax.yaxis.set_ticks([])
+
+
 
         Environment.draw_background_colour(ax)
         Environment.draw_objects(ax)
@@ -619,7 +629,7 @@ class Wall(Environment):
         length = self.wall_length
         
         # Check distance to point A (pole A)
-        tolerance = 1e-2
+        tolerance = 1e-6
         ax = np.linalg.norm(a - x)
         if ax < tolerance:
             # Particle is effectively at pole A
@@ -642,7 +652,8 @@ class Wall(Environment):
             return bx, -(b - x)
         
         # Else 0 <= t <= 1, and the particle is perpendicular to the wall
-        x_to_wall = (a-x) + t*vec
+        projection = a + t * vec
+        x_to_wall = projection - x
         return np.sqrt(np.sum(x_to_wall**2)), -x_to_wall
     
 

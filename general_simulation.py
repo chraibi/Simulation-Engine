@@ -40,10 +40,19 @@ def main(args):
         Environment.background_type = "space"
         Particle.walls_x_lim = 1000
         Particle.walls_y_lim = 1000
+        specific = False
         num_bodies = num1
-        for i in range(num_bodies):
-            Star()
-        Particle.track_com = True
+        if specific:
+            Star(np.array([300,300]),np.array([200,100]))
+            Star(np.array([600,500]),np.array([-100,300]))
+            Star(np.array([400,700]),np.array([0,-100]))
+
+
+
+        else:
+            for i in range(num_bodies):
+                Star()
+        Particle.track_com = False
         Particle.torus = False
         csv_path = f"Simulation_CSVs/{type}_{str(num_bodies)}_{str(now.time())}_{str(now.date())}.csv"
         mp4_path = f"Simulation_mp4s/{type}_{str(num_bodies)}_{str(now.time())}_{str(now.date())}.MP4"
@@ -58,24 +67,26 @@ def main(args):
         classroom = True
         first = False
         if classroom:
-            Particle.walls_x_lim = 15
+            Particle.walls_x_lim = 12
             Particle.walls_y_lim = 10
             x = Particle.walls_x_lim
             y = Particle.walls_y_lim
 
             wall_points = [[[0,0],[0,y]], # left wall
-                           [[0,0],[x,0]], # bottom wall
-                           [[0,y],[x,y]], # top wall
-                           [[x-2,3],[x-2,7]], # big desk
-                           [[x,0],[x,2]], # right wall bottom 
+                           [[0,0],[x-0,0]], # bottom wall
+                           [[0,y],[x-0,y]], # top wall
+                           [[x-2,3.5],[x-2,6.5]], # big desk
+                           [[x-0,0],[x,2]], # right wall bottom 
                            [[x,3],[x,7]], # right wall middle
-                           [[x,8],[x,y]], # right wall top
-                           [[3,2],[3,4]],
-                           [[3,6],[3,8]],
-                           [[6,2],[6,4]],
-                           [[6,6],[6,8]],
-                           [[9,2],[9,4]],
-                           [[9,6],[9,8]]]
+                           [[x,8],[x-0,y]], # right wall top
+                           #[[3,2],[3,4]],
+                           #[[3,6],[3,8]],
+                           [[4,2],[4,4]],
+                           [[4,6],[4,8]],
+                           #[[7,2],[7,4]],
+                           #[[7,6],[7,8]],
+                           [[7,2],[7,4]],
+                           [[7,6],[7,8]]]
             
             for pair in wall_points:
                 Wall(np.array(pair[0]), np.array(pair[1]))
@@ -131,7 +142,7 @@ def main(args):
 
     # Initialise a scatter plot (need all of this)
     if show_graph:
-        fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 7))
+        fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 5))
         scat = ax2.scatter([], [])
     else:
         fig, ax = plt.subplots(figsize=[7,7])

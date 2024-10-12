@@ -25,7 +25,7 @@ class Star(Particle):
         Initialises a star object, inheriting from the Particle class.
         '''
         super().__init__(position, velocity)
-
+        
         # Get mass from a log uniform distribution betwen min and max mass supplied
         self.mass = loguniform.rvs(Star.min_mass, Star.max_mass, size=1)[0]
         # Get velocity from 1/mass * 10 * random direction
