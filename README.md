@@ -4,18 +4,21 @@ Author: Ben Winstanley
 
 ----
 
-
-``` from simulation_classes import * ```
+### Predator-prey model simulation
 ``` python general_simulation.py --type birds --num 50 --num2 5 --steps 200```
 
 ![birds-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif)
 
 --- 
+
+### N-body gravitational dynamics simulation
 ``` python general_simulation.py --type nbody --num 30 --steps 100 ```
 
 ![nbody-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif)
 
 ---
+
+### Evacuation model simulation
 ``` python general_simulation.py --type evac --num 40 --steps 200 ```
 
 ![evac-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/evac_demo.gif)
