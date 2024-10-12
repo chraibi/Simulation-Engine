@@ -5,30 +5,30 @@ Author: Ben Winstanley
 
 ----
 
-### Predator-prey model simulation
+### Predator-Prey Model
 
 
 ![birds-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif)
 
-``` python general_simulation.py --type birds --num 50 --num2 5 --steps 200```
+Run this :  ``` python general_simulation.py --type birds --num 50 --num2 5 --steps 200```
 
 --- 
 
-### N-body gravitational dynamics simulation
+### N-body Gravitational Dynamics
 
 
 ![nbody-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif)
 
-``` python general_simulation.py --type nbody --num 30 --steps 100 ```
+Run this :  ``` python general_simulation.py --type nbody --num 30 --steps 100 ```
 
 ---
 
-### Evacuation model simulation
+### Classroom Evacuation model
 
 
 ![evac-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/evac_demo.gif)
 
-``` python general_simulation.py --type evac --num 40 --steps 200 ```
+Run this :  ``` python general_simulation.py --type evac --num 40 --steps 200 ```
 
 ---
 
@@ -47,7 +47,7 @@ Files:
 - .gitignore : file telling Git to ignore output CSV and MP4 folders
 - publish_all.sh : bash script to automatically push to main (Use carefully)
 
-Aims:
+Starting Aims:
 ----
 - Create a crowd simulation script, which will take a number of pedestrians and model their movement with a force-based model
 - This should take initial positions, a custom 2D environment, and update each pedestrians position and velocity at each timestep
