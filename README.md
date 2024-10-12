@@ -1,27 +1,34 @@
 # Crowd-Simulation
-Python project Oct 2024 \
+Python project \
+Oct 2024 \
 Author: Ben Winstanley
 
 ----
 
 ### Predator-prey model simulation
-``` python general_simulation.py --type birds --num 50 --num2 5 --steps 200```
+
 
 ![birds-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif)
+
+``` python general_simulation.py --type birds --num 50 --num2 5 --steps 200```
 
 --- 
 
 ### N-body gravitational dynamics simulation
-``` python general_simulation.py --type nbody --num 30 --steps 100 ```
+
 
 ![nbody-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif)
+
+``` python general_simulation.py --type nbody --num 30 --steps 100 ```
 
 ---
 
 ### Evacuation model simulation
-``` python general_simulation.py --type evac --num 40 --steps 200 ```
+
 
 ![evac-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/evac_demo.gif)
+
+``` python general_simulation.py --type evac --num 40 --steps 200 ```
 
 ---
 
@@ -34,12 +41,8 @@ Files:
 - classes.py : contains main Particle class, with Prey, Predator, Star, Human child classes, and Environment class with Wall child class.
 - simulation_classes : module folder containing seperated files with each of these classes
 - general_simulation.py : calls objects from classes.py, wraps up in simple time-stepping script in main(). Run with commands specified above.
-- pedestrian.py : contains Person class with force-based model methods
-- basic_simulation.py : script that simulates the dynamics given the force based model from pedestrian.py
-    - Run with terminal command: \
-    ```python basic_simulation.py --num_people 10 --save_mp4 True```
-- demo.mp4, demo.gif : demonstration video simulation
-- learning_classes.py : script to learn classes and OOP
+- old_version : folder containing older version of project
+- demo_videos : folder containing demo videos and gifs
 - VersionControl.md : markdown document with Git commands and explanation
 - .gitignore : file telling Git to ignore output CSV and MP4 folders
 - publish_all.sh : bash script to automatically push to main (Use carefully)
@@ -48,13 +51,13 @@ Aims:
 ----
 - Create a crowd simulation script, which will take a number of pedestrians and model their movement with a force-based model
 - This should take initial positions, a custom 2D environment, and update each pedestrians position and velocity at each timestep
-- This should be done following Git and Python best practices, using class instances for each pedestrian. Use git terminal commands, and commit from develop branch to main.
-- This should store information in an updated CSV file for each run
-- At the end of the computation, the script should read the CSV by line and create an mp4 video
+- This should be done following Git and Python best practices, with object-oriented programming. Use git terminal commands, and commit from develop branch to main.
+- This should store information in an updated CSV file for each run.
+- At the end of the computation, the script should read the CSV by line and create an mp4 video.
 
 Extensions:
 -----
-- Cloth simulation using perturbed SHM oscillator model for each particle in lattice
+- Cloth simulation using perturbed SHM oscillator model for each particle in lattice.
 - Evac sim fire instances
 - Evac sim where we fuse force model with a neural network to work out velocity. Reinforcement learning with PyTorch to train:
     1. Selfish NN behaviour to minimise personal time until evacuated
