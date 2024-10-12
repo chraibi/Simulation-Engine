@@ -25,11 +25,11 @@ class Prey(Particle):
     random_force = 30
     
     # Initialisation
-    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
+    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None, id=None) -> None:
         '''
         Initialises a Prey bird, inheriting from the Particle class.
         '''
-        super().__init__(position, velocity)
+        super().__init__(position, velocity, id)
 
         # Prey specific attributes
         self.mass = 0.5
@@ -39,9 +39,9 @@ class Prey(Particle):
         prototype = copy.copy(self)
         Particle.prototypes[self.__class__.__name__] = prototype
 
-    def create_instance(self):
+    def create_instance(self, id):
         ''' Used to create instance of the same class as self, without referencing class. '''
-        return Prey()
+        return Prey(id=id)
 
     # -------------------------------------------------------------------------
     # Distance utilities
@@ -128,7 +128,6 @@ class Prey(Particle):
         '''
         Format for parsing the compressed Prey instances from CSV.
         '''
-        self.id = system_state_list[idx_shift]
         self.position = np.array([float(system_state_list[idx_shift+1]), \
                                     float(system_state_list[idx_shift+2])])
         self.last_position = np.array([float(system_state_list[idx_shift+3]), \
@@ -208,11 +207,11 @@ class Predator(Particle):
     random_force = 5
     
     # Initialisation
-    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
+    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None, id = None) -> None:
         '''
         Initialises a Predator bird, inheriting from the Particle class.
         '''
-        super().__init__(position, velocity)
+        super().__init__(position, velocity, id)
 
         # Prey specific attributes
         self.mass = 0.5
@@ -222,9 +221,9 @@ class Predator(Particle):
         prototype = copy.copy(self)
         Particle.prototypes[self.__class__.__name__] = prototype
 
-    def create_instance(self):
+    def create_instance(self, id):
         ''' Used to create instance of the same class as self, without referencing class. '''
-        return Predator()
+        return Predator(id=id)
 
     # -------------------------------------------------------------------------
     # Utilities
@@ -320,7 +319,6 @@ class Predator(Particle):
         '''
         Format for parsing the compressed Predator instances from CSV.
         '''
-        self.id = system_state_list[idx_shift]
         self.position = np.array([float(system_state_list[idx_shift+1]), \
                                     float(system_state_list[idx_shift+2])])
         self.last_position = np.array([float(system_state_list[idx_shift+3]), \

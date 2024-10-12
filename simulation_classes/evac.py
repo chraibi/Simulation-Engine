@@ -21,11 +21,11 @@ class Human(Particle):
     random_force = 10
     
     # Initialisation
-    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
+    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None, id=None) -> None:
         '''
         Initialises a Human, inheriting from the Particle class.
         '''
-        super().__init__(position, velocity)
+        super().__init__(position, velocity, id)
 
         # Human specific attributes
         self.mass = 60
@@ -39,9 +39,9 @@ class Human(Particle):
         prototype = copy.copy(self)
         Particle.prototypes[self.__class__.__name__] = prototype
 
-    def create_instance(self):
+    def create_instance(self,id):
         ''' Used to create instance of the same class as self, without referencing class. '''
-        return Human()
+        return Human(id=id)
 
     # -------------------------------------------------------------------------
     # Distance utilities
@@ -129,7 +129,6 @@ class Human(Particle):
         '''
         Format for parsing the compressed Human instances from CSV.
         '''
-        self.id = system_state_list[idx_shift]
         self.position = np.array([float(system_state_list[idx_shift+1]), \
                                     float(system_state_list[idx_shift+2])])
         self.last_position = np.array([float(system_state_list[idx_shift+3]), \

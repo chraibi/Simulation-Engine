@@ -20,11 +20,11 @@ class Star(Particle):
     random_force = 0
     
     # Initialisation
-    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None) -> None:
+    def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None, id=None) -> None:
         '''
         Initialises a star object, inheriting from the Particle class.
         '''
-        super().__init__(position, velocity)
+        super().__init__(position, velocity, id)
         
         # Get mass from a log uniform distribution betwen min and max mass supplied
         self.mass = loguniform.rvs(Star.min_mass, Star.max_mass, size=1)[0]
@@ -38,9 +38,9 @@ class Star(Particle):
         prototype = copy.copy(self)
         Particle.prototypes[self.__class__.__name__] = prototype
 
-    def create_instance(self):
+    def create_instance(self, id):
         ''' Used to create instance of the same class as self, without referencing class. '''
-        return Star()
+        return Star(id=id)
 
     # -------------------------------------------------------------------------
     # Main force model
@@ -86,7 +86,6 @@ class Star(Particle):
         '''
         Format for parsing the compressed Star instances from CSV.
         '''
-        self.id = system_state_list[idx_shift]
         self.mass = float(system_state_list[idx_shift+1])
         self.colour = float(system_state_list[idx_shift+2])
         self.position = np.array([float(system_state_list[idx_shift+3]), \
@@ -119,56 +118,4 @@ class Star(Particle):
         
         ax.scatter(plot_position[0],plot_position[1],s=size,c=[self.colour], cmap='gray',vmin=0,vmax=1 )
 
-    # -------------------------------------------------------------------------
-    # CSV utilities
-
-    def write_csv_list(self):
-        '''
-        Format for compressing each Star instance into CSV.
-        '''
-        # Individual child instance info
-        return [self.id, self.mass, self.colour, \
-                self.position[0], self.position[1], \
-                self.last_position[0],self.last_position[1],
-                self.velocity[0], self.velocity[1],
-                self.acceleration[0], self.acceleration[1] ]
-
-    def read_csv_list(self, system_state_list, idx_shift):
-        '''
-        Format for parsing the compressed Star instances from CSV.
-        '''
-        self.id = system_state_list[idx_shift]
-        self.mass = float(system_state_list[idx_shift+1])
-        self.colour = float(system_state_list[idx_shift+2])
-        self.position = np.array([float(system_state_list[idx_shift+3]), \
-                                    float(system_state_list[idx_shift+4])])
-        self.last_position = np.array([float(system_state_list[idx_shift+5]), \
-                                    float(system_state_list[idx_shift+6])])
-        self.velocity = np.array([float(system_state_list[idx_shift+7]), \
-                                    float(system_state_list[idx_shift+8])])
-        self.acceleration = np.array([float(system_state_list[idx_shift+9]), \
-                                    float(system_state_list[idx_shift+10])])
-        # Update idx shift to next id and return
-        return idx_shift+11
     
-     # -------------------------------------------------------------------------
-    # Animation utilities
-
-    def instance_plot(self, ax, com=None, scale=None):
-        ''' 
-        Plots individual Star particle onto existing axis. 
-        '''
-
-        # Get plot position in frame
-        plot_position = self.position
-        #size = 2*(2*np.log10(self.mass)+1)**3
-        size = 5 + 10 * (np.power(2,np.log10(self.mass))-1)
-        if (com is not None) and (scale is not None):
-            plot_position = self.orient_to_com(com, scale)
-            #size *= 1/np.sqrt(scale)
-        #ax.scatter(plot_position[0], plot_position[1],marker='o',c=[self.colour], cmap='gray')
-        
-        ax.scatter(plot_position[0],plot_position[1],s=size,c=[self.colour], cmap='gray',vmin=0,vmax=1 )
-
-
-# ------------------------------------------------------------------------------------------------------------------------

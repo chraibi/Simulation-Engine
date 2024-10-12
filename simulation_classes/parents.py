@@ -33,13 +33,15 @@ class Particle:
     walls_x_lim: float = 100
     walls_y_lim: float = 100
 
-    # Bool whether to track COM when plotting
-    track_com: bool = True
+    # Bools for tracking COM or torus points
+    track_com: bool = False
+    torus = False
     
     # Initialisation function
     def __init__(self,
                 position: np.ndarray = None,
-                velocity: np.ndarray = None) -> None:
+                velocity: np.ndarray = None,
+                id = None) -> None:
         '''
         Initiate generic particle, with optional position and velocity inputs.
         Start with random position, and zero velocity and zero acceleration.
@@ -53,14 +55,16 @@ class Particle:
         # If no starting position given, assign random within 2D wall limits
         if position is None:
             self.position = np.array([np.random.rand(1)[0]*(self.walls_x_lim),np.random.rand(1)[0]*self.walls_y_lim])
+        else:
+            self.position = position
+
         # If no starting velocity given, set it to zero.
         if velocity is None:
             self.velocity = np.zeros(2)
-
-        # Extrapolate last position from starting position and velocity
-        if velocity is None:
+            # Extract last position as being the same
             self.last_position = self.position
         else:
+            self.velocity = velocity
             # v = (current-last)/dt , so last = current - v*dt
             self.last_position = self.position - self.velocity*self.delta_t
 
@@ -68,9 +72,9 @@ class Particle:
         self.acceleration = np.zeros(2)
 
         # Indexing for this instance
-        self._initialize_instance()
+        self._initialize_instance(id)
 
-    def _initialize_instance(self):
+    def _initialize_instance(self,id):
         """Initialize instance-specific attributes."""
 
         # Get Child class name of current instance
@@ -79,9 +83,15 @@ class Particle:
         # Population count
         Particle.pop_counts_dict[class_name] = Particle.pop_counts_dict.get(class_name, 0) + 1
 
-        # ID - index starts at 0
-        self.id = Particle.max_ids_dict.get(class_name, -1) + 1
-        Particle.max_ids_dict[class_name] = self.id
+        # ID
+        if id is not None:
+            id = int(id)
+            self.id = id
+            if Particle.max_ids_dict[class_name] < id:
+                Particle.max_ids_dict[class_name] = id
+        else:            
+            self.id = Particle.max_ids_dict.get(class_name, -1) + 1
+            Particle.max_ids_dict[class_name] = self.id
 
         # Add instance to 'all' dict
         if class_name not in Particle.all:
@@ -168,7 +178,7 @@ class Particle:
     # -------------------------------------------------------------------------
     # Distance utilities
 
-    torus = False
+    
     '''
     Periodic boundaries -> We have to check different directions for shortest dist.
     Need to check tic-tac-toe grid of possible directions:
@@ -292,8 +302,10 @@ class Particle:
         - Passes predicted new position through checks, including speed limits,
             and torus modulo function on coordinates.
         '''
+        if Particle.torus and Particle.track_com:
+            raise Exception("Sorry, COM tracking on a torus map is not currently supported! Please pick one.")
+        
         for i in Particle.iterate_all_instances():
-            
             # Let particle update its acceleration 
             flag = i.update_acceleration()
             if flag==1:
@@ -326,6 +338,9 @@ class Particle:
 
         # Update kill records
         Particle.kill_record[Particle.current_step] = Particle.kill_count
+
+        # Write state to CSV
+        Particle.write_state_to_csv()
     
     # -------------------------------------------------------------------------
     # CSV utilities
@@ -421,6 +436,7 @@ class Particle:
             class_pop = int(system_state_list[idx_shift+1])
             idx_shift += 2
 
+            # Diagnostic print
             #print(f"Timestep {timestep}, class_pop {class_pop}, classname {classname}")
 
             # TODO: Note this structure is faulty - can't run if we start with 0 instances of a class
@@ -448,8 +464,9 @@ class Particle:
 
                 # Create class_pop many clones by looping through CSV row
                 for i in range(class_pop):
+                    id = int(system_state_list[idx_shift])
                     # Clone our prototype with it's child class's create_instance method
-                    child = prototype.create_instance()
+                    child = prototype.create_instance(id=id)
 
                     # Assign attributes by reading the system_state_list for that class
                     # This calls to child class's method to read each instance
@@ -461,6 +478,10 @@ class Particle:
             
             # Move on to next class by shifting over pipe character '|'
             idx_shift += 1
+        # Diagnostics
+        #print("-")
+        #print("done loading")
+        #print(Particle.all)
         
     # -------------------------------------------------------------------------
     # Animation utilities

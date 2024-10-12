@@ -11,7 +11,7 @@ def main(args):
      # Unpack user arguments
     type = args.type
     time_steps = args.steps
-    num1 = args.num
+    num = args.num
     num2 = args.num2
     save_as_mp4 = args.save_mp4
     user_mp4_path = args.mp4_path
@@ -24,7 +24,7 @@ def main(args):
 
     if type == 'birds':
         Environment.background_type = "sky"
-        num_prey = num1
+        num_prey = num
         num_pred = num2
         for i in range(num_prey):
             Prey()
@@ -41,27 +41,22 @@ def main(args):
         Particle.walls_x_lim = 1000
         Particle.walls_y_lim = 1000
         specific = False
-        num_bodies = num1
         if specific:
             Star(np.array([300,300]),np.array([200,100]))
             Star(np.array([600,500]),np.array([-100,300]))
             Star(np.array([400,700]),np.array([0,-100]))
-
-
-
         else:
-            for i in range(num_bodies):
+            for i in range(num):
                 Star()
         Particle.track_com = False
         Particle.torus = False
-        csv_path = f"Simulation_CSVs/{type}_{str(num_bodies)}_{str(now.time())}_{str(now.date())}.csv"
-        mp4_path = f"Simulation_mp4s/{type}_{str(num_bodies)}_{str(now.time())}_{str(now.date())}.MP4"
-        window_title = f'N-body animation, {num_bodies} bodies'
+        csv_path = f"Simulation_CSVs/{type}_{str(num)}_{str(now.time())}_{str(now.date())}.csv"
+        mp4_path = f"Simulation_mp4s/{type}_{str(num)}_{str(now.time())}_{str(now.date())}.MP4"
+        window_title = f'N-body animation, {num} bodies'
 
     elif type == 'evac':
         Environment.background_type = "room"
-        num_people = num1
-        Particle.num_evacuees = num_people
+        Particle.num_evacuees = num
         Particle.walls_x_lim = 10
         Particle.walls_y_lim = 10
         classroom = True
@@ -104,14 +99,26 @@ def main(args):
             Wall(np.array([3,5]),np.array([8, 5]))
 
         show_graph = True
-        for i in range(num_people):
+        for i in range(num):
             Human()
         Particle.track_com = False
         Particle.torus = False
-        csv_path = f"Simulation_CSVs/{type}_{str(num_people)}_{str(now.time())}_{str(now.date())}.csv"
-        mp4_path = f"Simulation_mp4s/{type}_{str(num_people)}_{str(now.time())}_{str(now.date())}.MP4"
-        window_title = f'Evacuation simulation, {num_people} people'
-        
+        csv_path = f"Simulation_CSVs/{type}_{str(num)}_{str(now.time())}_{str(now.date())}.csv"
+        mp4_path = f"Simulation_mp4s/{type}_{str(num)}_{str(now.time())}_{str(now.date())}.MP4"
+        window_title = f'Evacuation simulation, {num} people'
+    
+    elif type == "springs":
+        Environment.background_type = "room"
+        Particle.walls_x_lim = 50
+        Particle.walls_y_lim = 50
+        for i in range(num):
+            Solid()
+        Particle.track_com = False
+        csv_path = f"Simulation_CSVs/{type}_{str(num)}_{str(now.time())}_{str(now.date())}.csv"
+        mp4_path = f"Simulation_mp4s/{type}_{str(num)}_{str(now.time())}_{str(now.date())}.MP4"
+        window_title = f'Lattice of {num} solids connected by springs'
+
+
     # --------------------------------------------------------------------------------------------------------
     # Create CSV file name
 
@@ -130,9 +137,6 @@ def main(args):
 
         # Update system
         Particle.timestep_update()
-
-        # Write current system to CSV
-        Particle.write_state_to_csv()
     
     # --------------------------------------------------------------------------------------------------------
     # Animate the CSV
@@ -193,7 +197,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description="General Simulation Engine input options.")
     
     # Add arguments
-    parser.add_argument('--type', type=str, help='The type of simulation [evac, birds, nbody]')
+    parser.add_argument('--type', type=str, help='The type of simulation [evac, birds, nbody, springs]')
     parser.add_argument('--steps', type=int, help='The number of timesteps in the simulation [10 <= N <~ 500, default 100]', default=100)
     parser.add_argument('--num', type=int, help='The number of particles in the simulation [1<= N <~ 500, default 20]', default=20)
     parser.add_argument('--num2', type=int, help='The number of secondary particles in the simulation (eg Predators) [1<= N <~ 500, default 3]', default=3)
