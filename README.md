@@ -1,5 +1,5 @@
-# Crowd-Simulation
-Python project \
+# Simulation Engine
+## General simulation engine for force-based models, built from scratch in Python.
 Oct 2024 \
 Author: Ben Winstanley
 
