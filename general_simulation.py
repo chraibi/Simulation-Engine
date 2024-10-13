@@ -109,11 +109,12 @@ def main(args):
     
     elif type == "springs":
         Environment.background_type = "room"
+        Particle.delta_t = 0.05
         Particle.walls_x_lim = 50
         Particle.walls_y_lim = 50
         for i in range(num):
             Solid()
-        Particle.track_com = False
+        Particle.track_com = True
         csv_path = f"Simulation_CSVs/{type}_{str(num)}_{str(now.time())}_{str(now.date())}.csv"
         mp4_path = f"Simulation_mp4s/{type}_{str(num)}_{str(now.time())}_{str(now.date())}.MP4"
         window_title = f'Lattice of {num} solids connected by springs'

@@ -270,7 +270,7 @@ class Particle:
     def scene_scale():
         ''' Compute the maximum x or y distance a particle has from the COM. '''
         com = Particle.centre_of_mass()
-        max_dist = 0
+        max_dist = 0.01
         # Call generator to find max dist from COM
         for instance in Particle.iterate_all_instances():
             vec_from_com = instance.position - com
@@ -285,7 +285,7 @@ class Particle:
         ''' Affine translation on point coordinates to prepare for plotting.  '''
         centre = np.array([0.5*Particle.walls_x_lim, 0.5*Particle.walls_y_lim])
         term = np.min(centre)
-        return centre + (self.position - com) *term/scale #* 1/scale
+        return centre + (self.position - com) *0.9*term/scale #* 1/scale
 
     # -------------------------------------------------------------------------
     # Main timestep function

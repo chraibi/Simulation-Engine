@@ -5,6 +5,21 @@ Author: Ben Winstanley
 
 ----
 
+<table>
+  <tr>
+    <td><img src="URL_to_image1" alt="Image 1" width="200"/></td>
+    <td><img src="URL_to_image2" alt="Image 2" width="200"/></td>
+  </tr>
+  <tr>
+    <td><img src="URL_to_image3" alt="Image 3" width="200"/></td>
+    <td><img src="URL_to_image4" alt="Image 4" width="200"/></td>
+  </tr>
+</table>
+
+### Spring system model
+
+
+
 ### Predator-Prey Model
 
 
