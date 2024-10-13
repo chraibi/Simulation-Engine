@@ -7,33 +7,19 @@ Ben Winstanley
 
 <table>
   <tr>
-    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/springs_demo.gif" alt="Springs tile" width="400"/></td>
-    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/evac_no_graph_demo.gif" alt="Evac tile" width="400"/></td>
+    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/evac_no_graph_demo.gif" alt="Evac tile" width="300"/></td>
+    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/springs_demo.gif" alt="Springs tile" width="300"/></td>
   </tr>
   <tr>
-    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif" alt="Birds tile" width="400"/></td>
-    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif" alt="Nbody tile" width="400"/></td>
+    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif" alt="Birds tile" width="300"/></td>
+    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif" alt="Nbody tile" width="300"/></td>
   </tr>
 </table>
 
 ---
 
-### Spring system model
 
-![springs-gif](https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/springs_demo.gif)
-
-Run this :  ``` python general_simulation.py --type springs --num 50  --steps 30 ```
-
-Point particles are initialised at random positions on the plane; if a neighbour is within a spring length away, a spring is formed. Particles with no connections are culled before step 0. We see larger molecules start to form as networks of connected particles reach an equillibrium. Setting a larger spring length allows more particles to connect to eachother, increasing the complexity of the structures formed.
-
-**Forces** 
-- Elastic force following Hooke's law: $F = -k \cdot (Spring \  Extension)$. This acts on both particles whenever the spring between them is in compression (red), or extension (yellow).
-- Damping force - directly opposes particle motion, scaling linearly with velocity.
-- Stochastic force - a small amount of random noise is applied to each particle.
-
----
-
-### Classroom Evacuation model
+### Classroom Evacuation Model
 
 
 ![evac-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/evac_demo.gif)
@@ -49,6 +35,21 @@ People are initialised at random points in the classroom, and make their way to 
 - Deflection force from walls - force acting along length of wall towards an individual's target, prevents gridlock when a wall directly obscures the target.
 - Stochastic force - a small amount of noise is applied.
 - Note that additional bespoke forces would have to be specified in order to encode more intelligent, calculating behaviour.
+
+---
+
+### Spring System Model
+
+![springs-gif](https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/springs_demo.gif)
+
+Run this :  ``` python general_simulation.py --type springs --num 50  --steps 30 ```
+
+Point particles are initialised at random positions on the plane; if a neighbour is within a spring length away, a spring is formed. Particles with no connections are culled before step 0. We see larger molecules start to form as networks of connected particles reach an equillibrium. Setting a larger spring length allows more particles to connect to eachother, increasing the complexity of the structures formed.
+
+**Forces** 
+- Elastic force following Hooke's law: $F = -k \cdot (Spring \  Extension)$. This acts on both particles whenever the spring between them is in compression (red), or extension (yellow).
+- Damping force - directly opposes particle motion, scaling linearly with velocity.
+- Stochastic force - a small amount of random noise is applied to each particle.
 
 ---
 
