@@ -7,12 +7,12 @@ Author: Ben Winstanley
 
 <table>
   <tr>
-    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/springs_demo.gif" alt="Image 1" width="200"/></td>
-    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/evac_no_graph_demo.gif" alt="Image 2" width="200"/></td>
+    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/springs_demo.gif" alt="Springs tile" width="400"/></td>
+    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/evac_no_graph_demo.gif" alt="Evac tile" width="400"/></td>
   </tr>
   <tr>
-    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif" alt="Image 3" width="200"/></td>
-    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif" alt="Image 4" width="200"/></td>
+    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif" alt="Birds tile" width="400"/></td>
+    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif" alt="Nbody tile" width="400"/></td>
   </tr>
 </table>
 
