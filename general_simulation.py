@@ -98,7 +98,7 @@ def main(args):
             Wall(np.array([Particle.walls_x_lim-1, 5.5]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
             Wall(np.array([3,5]),np.array([8, 5]))
 
-        show_graph = True
+        show_graph = False
         for i in range(num):
             Human()
         Particle.track_com = False
