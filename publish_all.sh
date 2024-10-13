@@ -6,7 +6,7 @@ git add .
 git commit -m "publish all"
 git push origin develop
 git checkout main
-git merge develop
+git merge develop --no-edit
 git push
 git checkout develop
 
