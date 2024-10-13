@@ -1,5 +1,5 @@
 # Simulation Engine
-## General simulation engine for force-based models, built from scratch in Python.
+## General simulation engine for force-based particle models, built from scratch in Python.
 Oct 2024 \
 Author: Ben Winstanley
 
@@ -7,21 +7,33 @@ Author: Ben Winstanley
 
 <table>
   <tr>
-    <td><img src="URL_to_image1" alt="Image 1" width="200"/></td>
-    <td><img src="URL_to_image2" alt="Image 2" width="200"/></td>
+    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/springs_demo.gif" alt="Image 1" width="200"/></td>
+    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/evac_no_graph_demo.gif" alt="Image 2" width="200"/></td>
   </tr>
   <tr>
-    <td><img src="URL_to_image3" alt="Image 3" width="200"/></td>
-    <td><img src="URL_to_image4" alt="Image 4" width="200"/></td>
+    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif" alt="Image 3" width="200"/></td>
+    <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif" alt="Image 4" width="200"/></td>
   </tr>
 </table>
 
 ### Spring system model
 
+![springs-gif](https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/springs_demo.gif)
 
+Run this :  ``` python general_simulation.py --type springs --num 50  --steps 30 ```
+
+---
+
+### Classroom Evacuation model
+
+
+![evac-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/evac_demo.gif)
+
+Run this :  ``` python general_simulation.py --type evac --num 40 --steps 200 ```
+
+---
 
 ### Predator-Prey Model
-
 
 ![birds-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/birds_demo.gif)
 
@@ -38,14 +50,7 @@ Run this :  ``` python general_simulation.py --type nbody --num 30 --steps 100 `
 
 ---
 
-### Classroom Evacuation model
 
-
-![evac-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/evac_demo.gif)
-
-Run this :  ``` python general_simulation.py --type evac --num 40 --steps 200 ```
-
----
 
 
 
