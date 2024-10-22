@@ -18,7 +18,7 @@ class Human(Particle):
 
     target_attraction = 1500
 
-    random_force = 10
+    random_force = 200
     
     # Initialisation
     def __init__(self, position: np.ndarray = None, velocity: np.ndarray = None, id=None) -> None:

@@ -3,6 +3,7 @@ import csv
 import copy
 import numpy as np
 
+
 class Particle:
     '''
     Parent class for particles in a 2D plane
@@ -51,6 +52,7 @@ class Particle:
         # ---------------
         # Motion
         self.max_speed = None
+        self.just_reflected = False
 
         # If no starting position given, assign random within 2D wall limits
         if position is None:
@@ -233,6 +235,12 @@ class Particle:
             # Change current position to backtrack
             self.position = self.last_position + self.velocity*Particle.delta_t
 
+    def inelastic_collision(self):
+        if self.just_reflected:
+            self.velocity *= 0.8
+            self.position = self.last_position + self.velocity*Particle.delta_t
+            self.just_reflected = False
+
     def torus_wrap(self):
         ''' Wrap coordinates into Torus world with modulo functions'''
         x,y = self.position
@@ -326,6 +334,9 @@ class Particle:
             # Enforce speed limit
             if i.max_speed is not None:
                 i.enforce_speed_limit()
+
+            # Reduce speed after inelastic collision
+            i.inelastic_collision()
 
             # Enforce torus wrapping
             if Particle.torus:
@@ -540,6 +551,7 @@ class Particle:
             ax2.set_xticks(xticks)  # Set ticks at every value in the range
             ax2.set_xlabel("Time (s)")
             ax2.set_title(f"Number evacuated over time")
+            ax2.set_aspect(aspect=Particle.walls_y_lim/Particle.walls_x_lim)
             t_vals = []
             y_vals = []
             for key, item in Particle.kill_record.items():
@@ -582,7 +594,8 @@ class Environment:
     background_type = 'sky'
     background_colour_dict = {"sky": "skyblue",
                               "space": "k",
-                              "room": "w"}
+                              "room": "w",
+                              "pool": "lightgreen"}
     
     @staticmethod
     def draw_background_colour(ax):
@@ -610,6 +623,13 @@ class Environment:
         ax.xaxis.set_ticks([])
         ax.yaxis.set_ticks([])
 
+        if Environment.background_type == 'pool':
+            ax.set_xlim([-2*0.05, 2+2*0.05])
+            ax.set_ylim([-2*0.05, 1+2*0.05])
+            # Plot head string of pool table
+            ax.plot([1.56,1.56],[0,1], c='w', alpha=0.5, linestyle=':')
+            # Plot foot spot
+            ax.scatter(0.64,0.5, c='w', s=10)
 
 
         Environment.draw_background_colour(ax)
@@ -626,6 +646,8 @@ class Wall(Environment):
         self.b_position = b_position
         self.wall_vec = b_position - a_position
         self.wall_length = np.sqrt(np.sum((self.wall_vec)**2))
+        # Get perpendicular vector with 90 degrees rotation anticlockwise
+        self.perp_vec = np.array([[0,-1],[1,0]]) @ self.wall_vec
         Environment.walls += [self]
 
     def __str__(self) -> str:
@@ -634,8 +656,12 @@ class Wall(Environment):
     def instance_plot(self, ax):
         x_vals = np.array([self.a_position[0], self.b_position[0]])
         y_vals = np.array([self.a_position[1], self.b_position[1]])
-        ax.plot(x_vals, y_vals, c='k')
-        ax.scatter(x_vals,y_vals,s=20,c='r')
+        if Environment.background_type == "pool":
+            ax.plot(x_vals, y_vals, c='brown')
+            ax.scatter(x_vals,y_vals,s=20,c='brown')
+        else:
+            ax.plot(x_vals, y_vals, c='k')
+            ax.scatter(x_vals,y_vals,s=20,c='r')
 
     def dist_to_wall(self, particle: Particle):
         '''
@@ -682,17 +708,20 @@ class Target(Environment):
     '''
     Encodes instance of a target
     '''
-    def __init__(self, position) -> None:
+    def __init__(self, position, capture_radius= 0.5) -> None:
         super().__init__()
         self.position = position
-        self.capture_thresh = 0.5**2
+        self.capture_thresh = capture_radius**2
         Environment.targets += [self]
 
     def __str__(self) -> str:
         return f"Target_[{self.position}]_[{self.capture_thresh}]]."
 
     def instance_plot(self, ax):
-        ax.scatter(self.position[0],self.position[1],s=20, c='g', marker='x')
+        if Environment.background_type == "pool":
+            ax.scatter(self.position[0],self.position[1],s=20, c='k', marker='x')
+        else:
+            ax.scatter(self.position[0],self.position[1],s=20, c='g', marker='x')
     
     def dist_to_target(self, particle: Particle):
         vec = self.position - particle.position

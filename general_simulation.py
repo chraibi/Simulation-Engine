@@ -2,6 +2,7 @@ import datetime
 import argparse
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.gridspec import GridSpec
 from simulation_classes import *
 
 import warnings
@@ -18,6 +19,8 @@ def main(args):
 
     now = datetime.datetime.now()
     show_graph = False # secondary axis
+
+    Particle.delta_t = 0.01
 
     # --------------------------------------------------------------------------------------------------------
     # Setup according to user-specified type
@@ -98,7 +101,7 @@ def main(args):
             Wall(np.array([Particle.walls_x_lim-1, 5.5]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
             Wall(np.array([3,5]),np.array([8, 5]))
 
-        show_graph = False
+        show_graph = True
         for i in range(num):
             Human()
         Particle.track_com = False
@@ -119,6 +122,14 @@ def main(args):
         mp4_path = f"Simulation_mp4s/{type}_{str(num)}_{str(now.time())}_{str(now.date())}.MP4"
         window_title = f'Lattice of {num} solids connected by springs'
 
+    elif type == "pool":
+        csv_path = f"Simulation_CSVs/{type}_{str(now.time())}_{str(now.date())}.csv"
+        mp4_path = f"Simulation_mp4s/{type}_{str(now.time())}_{str(now.date())}.MP4"
+        window_title = f'Pool table breaking simulation'
+        Particle.track_com = False
+        Particle.torus = False
+        Particle.delta_t = 0.01
+        Pool.pool_setup()
 
     # --------------------------------------------------------------------------------------------------------
     # Create CSV file name
@@ -130,7 +141,7 @@ def main(args):
     # Loop through timesteps
 
     Particle.num_timesteps = time_steps
-    Particle.delta_t = 0.1
+    
     
     for t in range(time_steps):
         # Print calculation progress
@@ -147,8 +158,25 @@ def main(args):
 
     # Initialise a scatter plot (need all of this)
     if show_graph:
-        fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        #fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        fig = plt.figure(figsize=(10, 5))
+
+        # Define a GridSpec layout to control the ratio between ax1 and ax2
+        gs = GridSpec(1, 2, width_ratios=[1.5, 1])  # Both subplots will have equal width
+
+        # Create subplots ax1 and ax2 using the GridSpec layout
+        ax = fig.add_subplot(gs[0])
+        ax2 = fig.add_subplot(gs[1])
+
+        # Set the aspect ratio for both ax1 and ax2
+        ax.set_aspect(aspect=1.5)  # Set ax1 aspect ratio 15:10
+        ax2.set_aspect(aspect=1.5)  # Set ax2 to match ax1
+
+        # Adjust spacing between plots if necessary
+        plt.subplots_adjust(wspace=0.3)
         scat = ax2.scatter([], [])
+
+
     else:
         fig, ax = plt.subplots(figsize=[7,7])
     fig.canvas.set_window_title(window_title)
@@ -159,7 +187,7 @@ def main(args):
 
 
     # Animate frames by calling update() function
-    interval_between_frames = 100 # milliseconds
+    interval_between_frames = Particle.delta_t*1000 # milliseconds
     if show_graph:
         ani = FuncAnimation(fig, Particle.animate_timestep, frames=time_steps, \
                         fargs=([ax],[ax2]), interval=interval_between_frames)
@@ -198,7 +226,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description="General Simulation Engine input options.")
     
     # Add arguments
-    parser.add_argument('--type', type=str, help='The type of simulation [evac, birds, nbody, springs]')
+    parser.add_argument('--type', type=str, help='The type of simulation [evac, birds, nbody, springs, pool]')
     parser.add_argument('--steps', type=int, help='The number of timesteps in the simulation [10 <= N <~ 500, default 100]', default=100)
     parser.add_argument('--num', type=int, help='The number of particles in the simulation [1<= N <~ 500, default 20]', default=20)
     parser.add_argument('--num2', type=int, help='The number of secondary particles in the simulation (eg Predators) [1<= N <~ 500, default 3]', default=3)

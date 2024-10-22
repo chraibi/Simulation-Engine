@@ -61,6 +61,7 @@ Merging
 - Clone remote GitHub repository into a new local folder, creating new repository: \
 ```git clone {GitHub URL} .``` \
 (Note the . means it unpacks straight into the folder you are in (.), and doesn't create a subfolder)
+If ```fatal : destination path '.' already exists ... ```, then don't do ```git init```, and clone the existing GitHub repo into EMPTY folder with no .git file.
 
 - Stage changes for a file after its saved:\
 ```git add code.py```

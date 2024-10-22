@@ -1,5 +1,5 @@
 # Simulation Engine
-### General simulation engine for force-based particle models, built from scratch in Python.
+
 Oct 2024 \
 Ben Winstanley
 
@@ -16,7 +16,22 @@ Ben Winstanley
   </tr>
 </table>
 
+### General simulation engine for force-based particle models, built from scratch in Python.
+
+
 ---
+
+### 8-ball pool breaking simulation
+
+![pool-gif]()
+
+Run this : ```python general_simulation.py --type pool --steps 500 ```
+
+Pool balls are initialised in the normal setup, the cue ball starting off firing into the triangle with a slight random vertical deviance. Balls repel off eachother, simulating elastic collision, and reflect off of the cushion walls, being removed if they hit the target of any pocket.
+
+**Forces**
+- Repulsion force between contacting balls - very strong but active within a small range.
+- Normal force from wall - this models each cushion as a spring, with any compression from incoming balls resulting in an outwards normal force on the ball, following Hooke's law.
 
 
 ### Classroom Evacuation Model
