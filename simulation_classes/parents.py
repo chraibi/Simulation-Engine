@@ -52,6 +52,7 @@ class Particle:
         # ---------------
         # Motion
         self.max_speed = None
+        self.just_reflected = False
 
         # If no starting position given, assign random within 2D wall limits
         if position is None:
@@ -234,6 +235,12 @@ class Particle:
             # Change current position to backtrack
             self.position = self.last_position + self.velocity*Particle.delta_t
 
+    def inelastic_collision(self):
+        if self.just_reflected:
+            self.velocity *= 0.8
+            self.position = self.last_position + self.velocity*Particle.delta_t
+            self.just_reflected = False
+
     def torus_wrap(self):
         ''' Wrap coordinates into Torus world with modulo functions'''
         x,y = self.position
@@ -327,6 +334,9 @@ class Particle:
             # Enforce speed limit
             if i.max_speed is not None:
                 i.enforce_speed_limit()
+
+            # Reduce speed after inelastic collision
+            i.inelastic_collision()
 
             # Enforce torus wrapping
             if Particle.torus:
@@ -614,10 +624,13 @@ class Environment:
         ax.yaxis.set_ticks([])
 
         if Environment.background_type == 'pool':
+            ax.set_xlim([-2*0.05, 2+2*0.05])
+            ax.set_ylim([-2*0.05, 1+2*0.05])
             # Plot head string of pool table
-            ax.plot([1.56,1.56],[0,1], c='w', alpha=0.5, linestyle='dotted')
+            ax.plot([1.56,1.56],[0,1], c='w', alpha=0.5, linestyle=':')
             # Plot foot spot
             ax.scatter(0.64,0.5, c='w', s=10)
+
 
         Environment.draw_background_colour(ax)
         Environment.draw_objects(ax)

@@ -10,11 +10,12 @@ class Pool(Particle):
     # Attributes
 
     # Constants
-    damping_constant = 2.5
+    Particle.delta_t=0.01
+    damping_constant = 0.1
     d = 0.051 # 5.1 cm diameter of pool ball
-    k_ball = 30 #
-    k_wall = 20
-    max_collision_force = 50 # limit collision force by 50N upper limit
+    k_ball = 0.3 #0.5
+    k_wall = 1000
+    max_collision_force = 5 # limit collision force by 50N upper limit
 
     # Counts
     num_red_potted = 0
@@ -23,7 +24,7 @@ class Pool(Particle):
     black_potted = 0
 
     # Initialisation
-    def __init__(self, colour: str, position: np.ndarray = None, velocity: np.ndarray = None,
+    def __init__(self, colour: str = 'r', position: np.ndarray = None, velocity: np.ndarray = None,
                 id=None) -> None:
         '''
         Initialises a solid object, inheriting from the Particle class.
@@ -59,6 +60,78 @@ class Pool(Particle):
         elif self.colour == 'k':
             Pool.black_potted = 1
 
+    def __str__(self):
+        return f"Pool ball {self.id}, colour {self.colour} at position {self.position} with velocity {self.velocity}"
+
+    # -------------------------------------------------------------------------
+    # Pool table setup
+
+    def pool_setup():
+        '''
+        Sets up standard game of 8-ball 'pub' pool
+        '''
+        Environment.background_type = "pool"
+        Particle.walls_x_lim = 2
+        Particle.walls_y_lim = 1
+
+        # Pocket widths
+        corner_width, middle_width = 0.089, 0.102
+        x = corner_width * (np.sqrt(2)/2)
+        y = middle_width / 2
+
+        # Pocket setup
+        Target(np.array([0,0]), capture_radius=x) # Bottom foot corner
+        Target(np.array([0,1]), capture_radius=x) # Top foot corner
+        Target(np.array([2,0]), capture_radius=x) # Bottom head corner
+        Target(np.array([2,1]), capture_radius=x) # Top head corner
+        Target(np.array([1,1+y]), capture_radius=np.sqrt(2)*y) # Front middle
+        Target(np.array([1,0-y]), capture_radius=np.sqrt(2)*y) # Bottom middle
+
+
+        # Cushions
+        
+        # -- Note order of a,b matters: 'inside' normal is anticlockwise to a->b
+        Wall(np.array([0,1-x]), np.array([0,x])) # Foot cushion
+        Wall(np.array([2,x]), np.array([2,1-x])) # Head cushion
+        Wall(np.array([x,0]), np.array([1-y,0])) # Bottom left cushion
+        Wall(np.array([1+y,0]), np.array([2-x,0])) # Bottom right cushion
+        Wall(np.array([1-y,1]), np.array([x,1])) # Top left cushion
+        Wall(np.array([2-x,1]), np.array([1+y,1])) # Top right cushion
+
+        # Balls
+        # -- White: behind head string, small amount of random vertical velocity
+        white_speed = 4
+        noise = (np.random.rand(1)*2 - 1)[0]*0.05
+        Pool(colour='w', position=(np.array([1.7,0.5])), velocity=np.array([-white_speed,noise]))
+
+        # -- Triangle setup - moving leftwards, top down
+        apex = np.array([0.64,0.5])
+        zero = np.array([0,0])
+        up = Pool.d * np.array([-(np.sqrt(3)/2), 0.5])
+        down = Pool.d * np.array([-(np.sqrt(3)/2), -0.5])
+
+        # --- Row 0
+        Pool(colour='r', position=apex, velocity=zero)
+        # --- Row 1
+        Pool(colour='y',position=apex+up, velocity=zero)
+        Pool(colour='r',position=apex+down, velocity=zero)
+        # --- Row 2
+        Pool(colour='r',position=apex+2*up, velocity=zero)
+        Pool(colour='k',position=apex+up+down, velocity=zero)
+        Pool(colour='y',position=apex+2*down, velocity=zero)
+        # --- Row 3
+        Pool(colour='y',position=apex+3*up, velocity=zero)
+        Pool(colour='r',position=apex+2*up+down, velocity=zero)
+        Pool(colour='y',position=apex+up+2*down, velocity=zero)
+        Pool(colour='r',position=apex+3*down, velocity=zero)
+        # --- Row 4
+        Pool(colour='r',position=apex+4*up, velocity=zero)
+        Pool(colour='y',position=apex+3*up+down, velocity=zero)
+        Pool(colour='r',position=apex+2*up+2*down, velocity=zero)
+        Pool(colour='y',position=apex+up+3*down, velocity=zero)
+        Pool(colour='r',position=apex+4*down, velocity=zero)
+
+
     # -------------------------------------------------------------------------
     # Main force model
     
@@ -82,18 +155,22 @@ class Pool(Particle):
         for ball in Pool.iterate_class_instances():
             if ball == self:
                 continue
-            elif self.dist(ball) < self.d: # 1 diameter between ball centres -> collision
-                repulsion = np.min( [self.k_ball/(np.sqrt(self.dist(ball))), self.max_collision_force] )
+            dist = np.sqrt(self.dist(ball))
+            if dist < self.d - 0.0005: #0.001 1 diameter between ball centres -> collision
+                #print(f"Collision detected between {self.id} and {ball.id}, distance {dist} metres")
+                repulsion = np.min( [self.k_ball/(dist), self.max_collision_force] )
                 force_term += - self.unit_dirn(ball)*repulsion
+                self.just_reflected = True
             else:
                 continue
 
         # Reflection from walls - in range, walls act like stiff springs
         for wall in Environment.walls:
             dist, _ = wall.dist_to_wall(self)
-            if dist < self.d/2: # 1 radius to wall -> collision F = ke
-                compression = self.d/2 - dist
-                force_term += wall.perp_vec * self.k_wall * compression
+            if dist < 0.5*self.d: # 1 radius to wall -> collision F = ke try 1
+                compression = self.d - dist
+                force_term += wall.perp_vec * self.k_wall * compression*0.8
+                self.just_reflected = True
 
         # Damping force to simulate friction
         force_term += -self.velocity * Pool.damping_constant
@@ -142,22 +219,22 @@ class Pool(Particle):
         ''' 
         Plots individual Pool ball particle onto existing axis, and plots score
         '''
-        size = 15**2
+        size = 8**2
         ax.scatter(self.position[0], self.position[1], color=self.colour, s=size)
 
         # Plot scores if not already done
         if ax.texts:
             pass
         else:
-            fontsize = 15**2
+            fontsize = 5
             if Pool.num_red_potted > 0:
-                ax.text(x=0.2,y=-Pool.d, s=f"{Pool.num_red_potted}", fontsize=fontsize)
+                ax.text(x=0.2,y=-Pool.d, s=f"{Pool.num_red_potted}", fontsize=fontsize, color='r')
             if Pool.num_yellow_potted > 0:
-                ax.text(x=0.4,y=-Pool.d, s=f"{Pool.num_yellow_potted}", fontsize=fontsize)
+                ax.text(x=0.4,y=-Pool.d, s=f"{Pool.num_yellow_potted}", fontsize=fontsize, color='y')
             if Pool.white_potted:
-                ax.text(x=0.6,y=-Pool.d, s=f"{Pool.white_potted}", fontsize=fontsize)
+                ax.text(x=0.6,y=-Pool.d, s=f"{Pool.white_potted}", fontsize=fontsize, color='w')
             if Pool.black_potted:
-                ax.text(x=0.8,y=-Pool.d, s=f"{Pool.black_potted}", fontsize=fontsize)
+                ax.text(x=0.8,y=-Pool.d, s=f"{Pool.black_potted}", fontsize=fontsize, color='k')
 
 
 
