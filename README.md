@@ -1,5 +1,5 @@
 # Simulation Engine
-### General simulation engine for force-based particle models, built from scratch in Python.
+
 Oct 2024 \
 Ben Winstanley
 
@@ -15,6 +15,9 @@ Ben Winstanley
     <td><img src="https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif" alt="Nbody tile" width="300"/></td>
   </tr>
 </table>
+
+### General simulation engine for force-based particle models, built from scratch in Python.
+
 
 ---
 

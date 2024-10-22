@@ -2,6 +2,7 @@ import datetime
 import argparse
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.gridspec import GridSpec
 from simulation_classes import *
 
 import warnings
@@ -98,7 +99,7 @@ def main(args):
             Wall(np.array([Particle.walls_x_lim-1, 5.5]),np.array([Particle.walls_x_lim, Particle.walls_y_lim]))
             Wall(np.array([3,5]),np.array([8, 5]))
 
-        show_graph = False
+        show_graph = True
         for i in range(num):
             Human()
         Particle.track_com = False
@@ -147,8 +148,25 @@ def main(args):
 
     # Initialise a scatter plot (need all of this)
     if show_graph:
-        fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        #fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        fig = plt.figure(figsize=(10, 5))
+
+        # Define a GridSpec layout to control the ratio between ax1 and ax2
+        gs = GridSpec(1, 2, width_ratios=[1.5, 1])  # Both subplots will have equal width
+
+        # Create subplots ax1 and ax2 using the GridSpec layout
+        ax = fig.add_subplot(gs[0])
+        ax2 = fig.add_subplot(gs[1])
+
+        # Set the aspect ratio for both ax1 and ax2
+        ax.set_aspect(aspect=1.5)  # Set ax1 aspect ratio 15:10
+        ax2.set_aspect(aspect=1.5)  # Set ax2 to match ax1
+
+        # Adjust spacing between plots if necessary
+        plt.subplots_adjust(wspace=0.3)
         scat = ax2.scatter([], [])
+
+
     else:
         fig, ax = plt.subplots(figsize=[7,7])
     fig.canvas.set_window_title(window_title)
