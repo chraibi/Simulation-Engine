@@ -6,6 +6,9 @@ Ben Winstanley
 ----
 
 <table>
+  <tr> 
+    <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/pool_demo.gif" alt="Pool tile" width = "300"/></td>
+  </tr>
   <tr>
     <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/evac_no_graph_demo.gif" alt="Evac tile" width="300"/></td>
     <td><img src="https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/springs_demo.gif" alt="Springs tile" width="300"/></td>
@@ -23,7 +26,7 @@ Ben Winstanley
 
 ### 8-ball pool breaking simulation
 
-![pool-gif]()
+![pool-gif](https://github.com/benw000/Simulation-Engine/blob/main/demo_videos/pool_demo.gif)
 
 Run this : ```python general_simulation.py --type pool --steps 500 ```
 
