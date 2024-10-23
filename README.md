@@ -19,10 +19,17 @@ Ben Winstanley
   </tr>
 </table>
 
-### General simulation engine for force-based particle models, built from scratch in Python.
+### General physics simulation engine for force-based particle models, built from scratch in Python.
 
+Follows object-oriented design: 
+- The main 'Particle' class handles all numerical integration, writing/reading CSV logs, animating, compositing to MP4 etc..
+- Each of its child classes (eg. 'Person', 'Star', 'Solid',...) specifies a set of forces describing a dynamical system, along with plotting appearance. 
+
+This is an active project - I'm still working on new systems, as well as working to improve the modular design. My aim is to make it quick and easy for a user to specify, and then simulate a completely new dynamical system (with all the annoying details obscured on the backend).
 
 ---
+
+## Examples:
 
 ### 8-ball pool breaking simulation
 
@@ -33,7 +40,7 @@ Run this : ```python general_simulation.py --type pool --steps 500 ```
 Pool balls are initialised in the normal setup, the cue ball starting off firing into the triangle with a slight random vertical deviance. Balls repel off eachother, simulating elastic collision, and reflect off of the cushion walls, being removed if they hit the target of any pocket.
 
 **Forces**
-- Repulsion force between contacting balls - very strong but active within a small range.
+- Repulsion force between contacting balls - very strong but active within a small range, scaling with 1/d.
 - Normal force from wall - this models each cushion as a spring, with any compression from incoming balls resulting in an outwards normal force on the ball, following Hooke's law.
 
 
@@ -92,7 +99,7 @@ Prey (white) and predator (red) birds are initialised at random points. The pred
 
 ![nbody-gif](https://github.com/benw000/Crowd-Simulation/blob/main/demo_videos/nbody_demo.gif)
 
-Run this :  ``` python general_simulation.py --type nbody --num 30 --steps 100 ```
+Run this : ``` python general_simulation.py --type nbody --num 30 --steps 100 ```
 
 Bodies are initialised with random positions and velocities, and masses of different magnitudes, chosen from a log-uniform distribution scale. Each body feels a gravitational attraction towards every other body in the system. Larger bodies attract smaller ones, which accelerate towards them. To a first order level of approximation, these smaller bodies then engage in elliptic orbits around the larger body, or are deflected, shooting off on a parabolic trajectory. As more bodies shoot off, their density in our viewing window decreases.
 
